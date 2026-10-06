@@ -42,6 +42,26 @@
 .atlas-quick-demand input{width:100%;min-height:34px;background:#fbf9ff;border-color:#e4ddf1}
 .atlas-quick-demand input:focus{border-color:#9674c3;box-shadow:0 0 0 3px rgba(150,116,195,.10)}
 @media(max-width:700px){.frow{grid-template-columns:auto minmax(0,1fr)}.frow .meta{grid-column:2}.md.ctl{min-width:100%}}
+.cal-new-selection{
+  position:absolute;
+  left:3px;
+  right:3px;
+  z-index:8;
+  border:1px solid #7c4ce0;
+  border-radius:7px;
+  background:rgba(150,116,195,.20);
+  box-shadow:inset 3px 0 0 #7c4ce0,0 5px 16px rgba(124,76,224,.10);
+  pointer-events:none;
+  overflow:hidden;
+  color:#50308f;
+  font-size:11px;
+  font-weight:750;
+  padding:4px 7px;
+  user-select:none;
+}
+.cal-new-selection span{display:block;white-space:nowrap}
+.daycol.selecting{cursor:ns-resize;background-color:rgba(150,116,195,.055)}
+.blk.dragging{will-change:transform,top,height;transition:none!important}
 </style></head><body>
 <title>Atlas — Central de Tarefas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1431,6 +1451,29 @@ function doneLog(from,to){
 
 /* ---------- render ---------- */
 let OCC={},TK=[],FE=[];
+const OPT_DEM={};
+const sameOpt=(a,b)=>JSON.stringify(a===undefined?null:a)===JSON.stringify(b===undefined?null:b);
+function applyOptimisticDemand(id,patch){
+  const token=Date.now()+'-'+Math.random().toString(36).slice(2);
+  OPT_DEM[id]={patch:clone(patch),token,at:Date.now()};
+  if(S.tarefas[id])S.tarefas[id]=Object.assign({},S.tarefas[id],clone(patch));
+  setTimeout(async()=>{
+    const op=OPT_DEM[id];if(!op||op.token!==token)return;
+    try{
+      const snap=await tRef(id).get();
+      if(!snap.exists)return;
+      delete OPT_DEM[id];
+      S.tarefas[id]=Object.assign({id},snap.data());
+      if(!S.dragging)render();
+    }catch(e){}
+  },8000);
+}
+function mergeOptimisticDemand(id,data){
+  const op=OPT_DEM[id];if(!op)return data;
+  const matched=Object.keys(op.patch).every(k=>sameOpt(data[k],op.patch[k]));
+  if(matched){delete OPT_DEM[id];return data}
+  return Object.assign({},data,clone(op.patch));
+}
 function render(){
   if(S.dragging){S.pending=true;return}
   renderWho();
@@ -1848,38 +1891,134 @@ function renderTime(c){
 }
 function bindGrid(body){
   let d=null;const H=()=>S.hour;
-  body.addEventListener('click',e=>{const b=e.target.closest('[data-cor]');if(!b)return;e.stopPropagation();const o=OCC[b.closest('.blk').dataset.key];if(o)openCor(o.t)});
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const snapMin=(y,mode='round')=>{
+    const raw=clamp(y/H()*60,0,NH*60);
+    const n=mode==='floor'?Math.floor(raw/15)*15:mode==='ceil'?Math.ceil(raw/15)*15:Math.round(raw/15)*15;
+    return clamp(n,0,NH*60);
+  };
+  const clock=m=>{const total=H0*60+m,h=Math.floor(total/60),mm=total%60;return pad(h)+':'+pad(mm)};
+  const clearSelect=x=>{if(x&&x.ghost)x.ghost.remove();if(x&&x.col)x.col.classList.remove('selecting')};
+
+  body.addEventListener('click',e=>{
+    const b=e.target.closest('[data-cor]');if(!b)return;
+    e.stopPropagation();const o=OCC[b.closest('.blk').dataset.key];if(o)openCor(o.t)
+  });
+
   body.addEventListener('pointerdown',e=>{
     if(e.button!==0||e.target.closest('[data-cor]'))return;
     const blk=e.target.closest('.blk'),col=e.target.closest('.daycol');if(!col)return;
-    if(blk){const o=OCC[blk.dataset.key];if(!o)return;
-      d={type:e.target.classList.contains('rs')?'resize':'move',blk,o,x0:e.clientX,y0:e.clientY,top0:parseFloat(blk.style.top),h0:parseFloat(blk.style.height),moved:false,col0:col,date:col.dataset.date,nav:0};
+
+    if(blk){
+      const o=OCC[blk.dataset.key];if(!o)return;
+      d={type:e.target.classList.contains('rs')?'resize':'move',blk,o,x0:e.clientX,y0:e.clientY,top0:parseFloat(blk.style.top),h0:parseFloat(blk.style.height),moved:false,col0:col,date:col.dataset.date,nav:0,pointerId:e.pointerId};
       blk.setPointerCapture(e.pointerId);e.preventDefault();
-    }else{if(!canCreate())return;d={type:'new',col,x0:e.clientX,y0:e.clientY,y:e.clientY-col.getBoundingClientRect().top,moved:false}}
+      return;
+    }
+
+    if(!canCreate())return;
+    const r=col.getBoundingClientRect(),y=clamp(e.clientY-r.top,0,H()*NH);
+    d={type:'new',col,x0:e.clientX,y0:e.clientY,y,moved:false,pointerId:e.pointerId,ghost:null,startMin:null,endMin:null};
+    try{col.setPointerCapture(e.pointerId)}catch(x){}
+    e.preventDefault();
   });
+
   body.addEventListener('pointermove',e=>{
-    if(!d)return;const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
-    if(!d.moved&&Math.hypot(dx,dy)<5)return;
-    if(!d.moved){d.moved=true;if(d.type==='new')return;S.dragging=true;d.blk.classList.add('dragging')}
-    if(d.type==='new')return;
-    if(d.type==='resize'){const dur=Math.max(15,Math.round((d.o.dur+dy/H()*60)/15)*15);d.blk.style.height=Math.max(16,dur*H()/60)+'px';d.dur=dur;
-      d.blk.dataset.dur=dur>=60?(Math.floor(dur/60)+'h'+(dur%60?String(dur%60).padStart(2,'0'):'')):dur+' min';const m=d.blk.querySelector('.m');if(m)m.textContent=d.blk.dataset.dur;return}
-    const dm=Math.round(dy/H()*60/15)*15;d.blk.style.top=Math.max(0,Math.min(H()*NH-H()/4,d.top0+dm*H()/60))+'px';
-    const tgt=[...body.querySelectorAll('.daycol')].find(cc=>{const r=cc.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<r.right});
+    if(!d)return;
+    const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
+    if(!d.moved&&Math.hypot(dx,dy)<4)return;
+
+    if(!d.moved){
+      d.moved=true;S.dragging=true;
+      if(d.type==='new'){
+        d.col.classList.add('selecting');
+        d.ghost=document.createElement('div');
+        d.ghost.className='cal-new-selection';
+        d.ghost.innerHTML='<span></span>';
+        d.col.appendChild(d.ghost);
+      }else d.blk.classList.add('dragging');
+    }
+
+    if(d.type==='new'){
+      const r=d.col.getBoundingClientRect(),curY=clamp(e.clientY-r.top,0,H()*NH);
+      let a=snapMin(Math.min(d.y,curY),'floor'),b=snapMin(Math.max(d.y,curY),'ceil');
+      if(a>=NH*60)a=NH*60-15;
+      if(b<=a)b=Math.min(NH*60,a+15);
+      if(b-a<15)b=Math.min(NH*60,a+15);
+      d.startMin=a;d.endMin=b;
+      d.ghost.style.top=(a*H()/60)+'px';
+      d.ghost.style.height=Math.max(15,(b-a)*H()/60)+'px';
+      d.ghost.querySelector('span').textContent=clock(a)+' – '+clock(b);
+      return;
+    }
+
+    if(d.type==='resize'){
+      const dur=Math.max(15,Math.round((d.o.dur+dy/H()*60)/15)*15);
+      d.blk.style.height=Math.max(16,dur*H()/60)+'px';d.dur=dur;
+      d.blk.dataset.dur=dur>=60?(Math.floor(dur/60)+'h'+(dur%60?String(dur%60).padStart(2,'0'):'')):dur+' min';
+      const m=d.blk.querySelector('.m');if(m)m.textContent=d.blk.dataset.dur;
+      return;
+    }
+
+    const dm=Math.round(dy/H()*60/15)*15;
+    d.blk.style.top=Math.max(0,Math.min(H()*NH-H()/4,d.top0+dm*H()/60))+'px';
+
+    const tgt=[...body.querySelectorAll('.daycol')].find(cc=>{
+      const r=cc.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<r.right
+    });
     const inR=el=>{const r=el.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom};
-    d.nav=inR($('#prev'))?-1:inR($('#next'))?1:0;$('#prev').classList.toggle('dropnav',d.nav<0);$('#next').classList.toggle('dropnav',d.nav>0);
-    if(tgt){d.date=tgt.dataset.date;d.blk.style.transform='translateX('+(tgt.getBoundingClientRect().left-d.col0.getBoundingClientRect().left)+'px)'}
+    d.nav=inR($('#prev'))?-1:inR($('#next'))?1:0;
+    $('#prev').classList.toggle('dropnav',d.nav<0);$('#next').classList.toggle('dropnav',d.nav>0);
+    if(tgt){
+      d.date=tgt.dataset.date;
+      d.blk.style.transform='translate3d('+(tgt.getBoundingClientRect().left-d.col0.getBoundingClientRect().left)+'px,0,0)';
+    }
   });
+
   body.addEventListener('pointerup',()=>{
-    if(!d)return;const x=d;d=null;S.dragging=false;$('#prev').classList.remove('dropnav');$('#next').classList.remove('dropnav');
-    if(x.type==='new'){if(!x.moved){const s=parseYmd(x.col.dataset.date);s.setMinutes(H0*60+Math.floor(x.y/H()*60/30)*30);openDemanda({nova:true,start:s})}return}
-    if(!x.moved){if(S.pending){S.pending=false;render()}openDemanda({t:x.o.t,k:x.o.k});return}
-    if(x.type==='resize'){commitDem(x.o,x.o.start,x.dur||x.o.dur)}
-    else if(x.nav){const s=addDays(parseYmd(x.date),x.nav);s.setHours(x.o.start.getHours(),x.o.start.getMinutes(),0,0);commitDem(x.o,s,x.o.dur)}
-    else{const s=parseYmd(x.date);s.setMinutes(H0*60+Math.round(parseFloat(x.blk.style.top)/H()*60/15)*15);commitDem(x.o,s,x.o.dur)}
-    S.pending=false;render();
+    if(!d)return;
+    const x=d;d=null;
+    S.dragging=false;
+    $('#prev').classList.remove('dropnav');$('#next').classList.remove('dropnav');
+
+    if(x.type==='new'){
+      clearSelect(x);
+      const s=parseYmd(x.col.dataset.date);
+      if(x.moved&&x.startMin!=null&&x.endMin!=null){
+        s.setMinutes(H0*60+x.startMin,0,0);
+        const dur=Math.max(15,x.endMin-x.startMin);
+        S.pending=false;
+        openDemanda({nova:true,start:s,tempo:dur});
+      }else{
+        const min=snapMin(x.y,'round');
+        s.setMinutes(H0*60+Math.min(min,NH*60-15),0,0);
+        S.pending=false;
+        openDemanda({nova:true,start:s});
+      }
+      return;
+    }
+
+    if(!x.moved){
+      if(S.pending){S.pending=false;render()}
+      openDemanda({t:x.o.t,k:x.o.k});
+      return;
+    }
+
+    if(x.type==='resize')commitDem(x.o,x.o.start,x.dur||x.o.dur);
+    else if(x.nav){
+      const s=addDays(parseYmd(x.date),x.nav);s.setHours(x.o.start.getHours(),x.o.start.getMinutes(),0,0);commitDem(x.o,s,x.o.dur);
+    }else{
+      const s=parseYmd(x.date);s.setMinutes(H0*60+Math.round(parseFloat(x.blk.style.top)/H()*60/15)*15,0,0);commitDem(x.o,s,x.o.dur);
+    }
+    S.pending=false;
   });
-  body.addEventListener('pointercancel',()=>{d=null;S.dragging=false;$('#prev').classList.remove('dropnav');$('#next').classList.remove('dropnav');render()});
+
+  body.addEventListener('pointercancel',()=>{
+    const x=d;d=null;clearSelect(x);S.dragging=false;
+    $('#prev').classList.remove('dropnav');$('#next').classList.remove('dropnav');
+    if(x&&x.blk)x.blk.classList.remove('dragging');
+    render();
+  });
 }
 function openCor(t0){
   const t=S.tarefas[t0.id]||t0,tc=(S.cfg.tipoCores||{})[t.tipo]||null,cur=t.cor||tc;
@@ -1892,27 +2031,46 @@ function openCor(t0){
   el.querySelector('#corIn').addEventListener('change',e=>save(e.target.value));
   el.querySelector('#corTipo').onclick=()=>save(null);
 }
-function commitDem(o,start,dur){  const t=S.tarefas[o.t.id]||o.t;dur=Math.max(5,Math.round(dur||o.dur));
+function commitDem(o,start,dur){
+  const t=S.tarefas[o.t.id]||o.t;dur=Math.max(5,Math.round(dur||o.dur));
   if(+start===+o.start&&dur===o.dur)return;
   const desc=(+start!==+o.start?'para '+DIAS[start.getDay()].toLowerCase()+' '+fmtDM(start)+' '+hm(start):'')+(+start!==+o.start&&dur!==o.dur?', ':'')+(dur!==o.dur?'duração '+dur+' min':'');
+
   if(!isRec(t)){
     const old={inicio:t.inicio,tempo:t.tempo||null,checklist:cloneCL(t.checklist||[])};
     const oldStart=parseLocal(t.inicio),delta=oldStart?dayDiff(sod(oldStart),sod(start)):0;
-    let checklist=t.checklist||[];
+    let checklist=cloneCL(t.checklist||[]);
     if(delta){
-      checklist=cloneCL(checklist).map(it=>{
-        if(it.data){const d=parseYmd(it.data);it.data=ymd(addDays(d,delta))}
+      checklist=checklist.map(it=>{
+        if(it.data){const dt=parseYmd(it.data);it.data=ymd(addDays(dt,delta))}
         return it;
       });
     }
-    write(t.id,()=>tRef(t.id).update({inicio:toLocal(start),tempo:dur,checklist,ultimaAtividade:nowIso()})).then(()=>toast('Demanda alterada: '+desc+'.',{label:'Desfazer',fn:()=>write(t.id,()=>tRef(t.id).update(old)).then(()=>toast('Alteração desfeita.'))}));
+    const patch={inicio:toLocal(start),tempo:dur,checklist,ultimaAtividade:nowIso()};
+    applyOptimisticDemand(t.id,patch);
+    render();
+    write(t.id,()=>tRef(t.id).update(patch)).then(()=>{
+      toast('Demanda alterada: '+desc+'.',{label:'Desfazer',fn:()=>{
+        applyOptimisticDemand(t.id,old);render();
+        write(t.id,()=>tRef(t.id).update(old)).then(()=>toast('Alteração desfeita.'));
+      }});
+    });
     return;
   }
+
   const el=overlay('<div class="md sm" role="alertdialog" aria-modal="true"><div class="md-h"><h2>Demanda recorrente</h2></div><div class="msg"><p><b>'+esc(t.descricao)+'</b></p><p class="meta">Alteração: '+esc(desc)+'</p><p>Aplicar a mudança em quais eventos?</p>'+
     '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-x>Cancelar</button><button type="button" class="btn" id="rcOne">Apenas este evento</button><button type="button" class="btn pri" id="rcAll">Todos os eventos seguintes</button></div></div></div>');
   onClose=()=>render();
-  el.querySelector('#rcOne').onclick=()=>{onClose=null;closeLayer();
-    write(t.id,()=>tRef(t.id).update({excecoes:{[o.k]:{inicio:toLocal(start),tempo:dur}},ultimaAtividade:nowIso()})).then(()=>toast('Alterado apenas este evento.'))};
+
+  el.querySelector('#rcOne').onclick=()=>{
+    onClose=null;closeLayer();
+    const excecoes=Object.assign({},t.excecoes||{});
+    excecoes[o.k]={inicio:toLocal(start),tempo:dur};
+    const patch={excecoes,ultimaAtividade:nowIso()};
+    applyOptimisticDemand(t.id,patch);render();
+    write(t.id,()=>tRef(t.id).update(patch)).then(()=>toast('Alterado apenas este evento.'));
+  };
+
   el.querySelector('#rcAll').onclick=()=>{onClose=null;closeLayer();serieDesde(t,o.k,start,dur)};
 }
 function serieDesde(t,k,start,dur){
@@ -2369,7 +2527,7 @@ function openDemanda(opt){
   if(opt.nova&&!canCreate()){toast('Seu perfil não permite criar demandas.');return}
   const t=opt.t||null,k=opt.k||null,isNew=!t,C=S.cfg;
   const v=opt.dados||(t?{instrucoes:t.instrucoes||'',tempo:t.tempo||null,descricao:t.descricao,tipo:t.tipo||'',responsavel:t.responsavel||'',prioridade:t.prioridade||2,start:parseLocal(t.inicio),recorrencia:t.recorrencia||{freq:'none'},visivelPara:t.visivelPara||[],checklist:t.checklist,modeloId:t.modeloId||''}
-    :{tempo:C.tempoPadrao||30,descricao:'',tipo:C.obrig.tipo?'':(C.tipos[0]||''),responsavel:S.me.pessoa||'',prioridade:2,start:opt.start||new Date(),recorrencia:{freq:'none'},visivelPara:[],checklist:[],modeloId:''});
+    :{tempo:Math.max(5,Math.round(+opt.tempo||C.tempoPadrao||30)),descricao:'',tipo:C.obrig.tipo?'':(C.tipos[0]||''),responsavel:S.me.pessoa||'',prioridade:2,start:opt.start||new Date(),recorrencia:{freq:'none'},visivelPara:[],checklist:[],modeloId:''});
   const cl=cloneCL(v.checklist);if(!cl.length)cl.push(newItem());
   const r=Object.assign({freq:'none'},v.recorrencia||{});if(r.freq==='interval')r.freq='daily';
   const tipos=C.tipos.includes(v.tipo)||!v.tipo?C.tipos:C.tipos.concat(v.tipo);
@@ -2865,7 +3023,7 @@ async function start(){
     if(mine&&mine.userId!==S.me.id&&!S.linking&&back.linkPerson){S.linking=true;back.linkPerson(mine.id).catch(()=>{}).finally(()=>{S.linking=false})}
     render();
   },()=>toast('Conexão com a equipe interrompida. Recarregue a página.'));
-  db.collection('tarefas').onSnapshot(s=>{S.tarefas={};s.docs.forEach(d=>{S.tarefas[d.id]=Object.assign({id:d.id},d.data())});S.loaded.t=true;render()},
+  db.collection('tarefas').onSnapshot(s=>{S.tarefas={};s.docs.forEach(d=>{const data=mergeOptimisticDemand(d.id,d.data());S.tarefas[d.id]=Object.assign({id:d.id},data)});S.loaded.t=true;render()},
     ()=>toast('Conexão com as demandas interrompida. Recarregue a página.'));
   db.collection('frentes').onSnapshot(s=>{S.frentes={};s.docs.forEach(d=>{S.frentes[d.id]=Object.assign({id:d.id},d.data())});render()},()=>toast('Conexão com as frentes interrompida.'));
   db.collection('controles').onSnapshot(s=>{S.controles={};s.docs.forEach(d=>{S.controles[d.id]=Object.assign({id:d.id},d.data())});S.ctlSubs.forEach(f=>{try{f()}catch(e){}})},()=>toast('Conexão com os controles interrompida.'));
