@@ -312,7 +312,7 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
     <button class="btn" id="btnResumo" type="button" hidden>Resumo do dia</button>
     <button class="btn" id="btnCfg" type="button" hidden>Configurações</button>
     <button class="btn" id="btnLogout" type="button" hidden>Sair</button>
-    <button class="btn pri" id="btnNova" type="button">Nova frente</button>
+    <button class="btn pri" id="btnNova" type="button">Nova demanda</button>
   </header>
 
   <div id="painel">
@@ -320,8 +320,8 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
       <button class="stat" type="button" data-act="hoje" id="cHoje"><span class="lb">Tarefas para hoje</span><span class="vl mono" id="stHoje">0</span></button>
       <button class="stat" type="button" data-act="atrasadas" id="cAtr"><span class="lb">Tarefas atrasadas</span><span class="vl mono" id="stAtr">0</span></button>
       <button class="stat" type="button" data-act="aprov" id="cAp"><span class="lb">Aprovações pendentes</span><span class="vl mono" id="stAp">0</span></button>
-      <button class="stat" type="button" data-act="pendentes" id="cFr"><span class="lb">Frentes pendentes</span><span class="vl mono" id="stFr">0</span></button>
-      <button class="stat" type="button" data-act="paradas" id="cPar"><span class="lb">Frentes paradas</span><span class="vl mono" id="stPar">0</span></button>
+      <button class="stat" type="button" data-act="pendentes" id="cFr"><span class="lb">Demandas pendentes</span><span class="vl mono" id="stFr">0</span></button>
+      <button class="stat" type="button" data-act="paradas" id="cPar"><span class="lb">Demandas paradas</span><span class="vl mono" id="stPar">0</span></button>
       <div class="stat rz" id="cRz">
         <div class="rz-h"><span class="lb">Tarefas realizadas</span><select id="dnPer" aria-label="Período das tarefas realizadas"><option value="hoje">Hoje</option><option value="semana" selected>Esta semana</option><option value="mes">Este mês</option><option value="intervalo">Intervalo</option></select></div>
         <div class="dn-rng" id="dnRng" hidden><input type="date" id="dnDe" aria-label="Data inicial"><span>a</span><input type="date" id="dnAte" aria-label="Data final"></div>
@@ -335,16 +335,16 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
       <select class="f" id="fResp" aria-label="Responsável"></select>
       <select class="f" id="fTipo" aria-label="Tipo"></select>
       <select class="f" id="fPrio" aria-label="Prioridade"><option value="">Todas as prioridades</option><option value="4">Crítica</option><option value="3">Alta</option><option value="2">Média</option><option value="1">Baixa</option></select>
-      <input class="f" id="busca" type="search" placeholder="Buscar frente ou tarefa" aria-label="Buscar">
+      <input class="f" id="busca" type="search" placeholder="Buscar demanda ou tarefa" aria-label="Buscar">
     </div>
 
     <div class="main" id="main" style="margin-top:10px">
-      <aside class="side" aria-label="Frentes e tarefas">
+      <aside class="side" aria-label="Demandas e tarefas">
         <section class="panel sec">
-          <div class="sec-h"><h2>Frentes <span class="cnt mono" id="frCount">0</span></h2>
-            <select id="frFiltro" aria-label="Quais frentes"><option value="pendentes">Pendentes</option><option value="paradas">Paradas</option><option value="concluidas">Concluídas</option></select>
-            <span class="grow"></span><button class="btn sm" id="btnAI" type="button" title="Gera ou atualiza o resumo das frentes com mudanças">Atualizar resumos</button></div>
-          <div class="lst" id="frl"><div class="empty"><b>Carregando frentes</b>As frentes aparecem aqui.</div></div>
+          <div class="sec-h"><h2>Demandas <span class="cnt mono" id="frCount">0</span></h2>
+            <select id="frFiltro" aria-label="Quais demandas"><option value="pendentes">Pendentes</option><option value="paradas">Paradas</option><option value="concluidas">Concluídas</option></select>
+            <span class="grow"></span><button class="btn sm" id="btnAI" type="button" title="Gera ou atualiza o resumo das demandas com mudanças">Atualizar resumos</button></div>
+          <div class="lst" id="frl"><div class="empty"><b>Carregando demandas</b>As demandas aparecem aqui.</div></div>
         </section>
         <section class="panel sec">
           <div class="sec-h"><h2>Tarefas <span class="cnt mono" id="tkCount">0</span></h2>
@@ -424,7 +424,7 @@ const saveView=()=>{try{localStorage.setItem('ct-view',JSON.stringify({mode:S.mo
 const chains={};
 function write(id,fn){
   const p=(chains[id]||Promise.resolve()).then(fn).catch(e=>{const c=e&&e.code;
-    toast(c==='invalid_argument'?'Sem permissão para alterar. Peça acesso de edição ao administrador.':c==='quota_exceeded'?'Limite do banco atingido. Exclua frentes antigas.':'Não foi possível salvar. Tente de novo.')});
+    toast(c==='invalid_argument'?'Sem permissão para alterar. Peça acesso de edição ao administrador.':c==='quota_exceeded'?'Limite do banco atingido. Exclua demandas antigas.':'Não foi possível salvar. Tente de novo.')});
   chains[id]=p;return p;
 }
 const tRef=id=>S.db.doc('tarefas/'+id);
@@ -588,7 +588,7 @@ function renderStats(){
   $('#stFr').innerHTML=pend.length+(pend.some(e=>e.late)?' <small>'+pend.filter(e=>e.late).length+' atrasadas</small>':'');
   $('#stPar').textContent=par;$('#cPar').classList.toggle('warn',par>0);
   $('#dnRng').hidden=S.dn.per!=='intervalo';
-  if(ok){const[a,b]=doneRange(),l=doneLog(a,b);$('#stRz').textContent=l.items.length;$('#stRzF').textContent='tarefas, '+l.frentes.length+(l.frentes.length===1?' frente concluída':' frentes concluídas')}
+  if(ok){const[a,b]=doneRange(),l=doneLog(a,b);$('#stRz').textContent=l.items.length;$('#stRzF').textContent='tarefas, '+l.frentes.length+(l.frentes.length===1?' demanda concluída':' demandas concluídas')}
   $('#cHoje').classList.toggle('on',S.tkFiltro==='hoje');$('#cAtr').classList.toggle('on',S.tkFiltro==='atrasadas');
   $('#cRz').classList.toggle('on',S.tkFiltro==='realizadas');$('#cPar').classList.toggle('on',S.frFiltro==='paradas');
   const week=ok?allItems(w0,w1,false):[];
@@ -642,7 +642,7 @@ function aprovHTML(a,i,todas){
   return '<div class="apv'+(a.o.atrasada?' late':'')+'" data-i="'+i+'"><div class="apv-h"><div><b>'+esc(a.t.descricao)+'</b><div class="meta">Etapa: '+esc(a.it.descricao)+' | cargo '+esc(cargoNome(a.cargo))+' | solicitante '+esc(pName(a.solicitante))+(todas?' | aprovador '+esc(pName(a.aprovador)):'')+'</div></div>'+
     '<div class="apv-p"><span class="mono'+(a.o.atrasada?' late':'')+'">prazo '+fmtDM(a.o.start)+'</span>'+(v?'<span class="mono">'+fmtR(v)+'</span>':'')+'</div></div>'+
     (a.ultimo&&a.ultimo.status==='reprovado'?'<div class="dev">Reenviada após reprovação: '+esc(a.ultimo.obs||'sem motivo')+'</div>':'')+
-    '<div class="apv-a"><input type="text" data-obs placeholder="Observações e diretivas (obrigatório para reprovar)" aria-label="Observações"><button type="button" class="btn sm" data-ver>Ver frente</button><button type="button" class="btn sm danger" data-rep>Reprovar</button><button type="button" class="btn sm pri" data-apr>Aprovar</button></div></div>';
+    '<div class="apv-a"><input type="text" data-obs placeholder="Observações e diretivas (obrigatório para reprovar)" aria-label="Observações"><button type="button" class="btn sm" data-ver>Ver demanda</button><button type="button" class="btn sm danger" data-rep>Reprovar</button><button type="button" class="btn sm pri" data-apr>Aprovar</button></div></div>';
 }
 function bindAprov(box,getList,after){
   box.addEventListener('click',e=>{const card=e.target.closest('.apv');if(!card)return;const a=getList()[+card.dataset.i];if(!a)return;const inp=card.querySelector('[data-obs]'),obs=inp.value.trim();
@@ -672,7 +672,7 @@ function renderFrentes(){
   const list=FE.filter(e=>S.frFiltro==='concluidas'?e.done:S.frFiltro==='paradas'?e.parada:!e.done);
   $('#frCount').textContent=list.length;
   const box=$('#frl');box._list=list;
-  if(!list.length){box.innerHTML='<div class="empty"><b>'+(S.frFiltro==='paradas'?'Nenhuma frente parada':S.frFiltro==='concluidas'?'Nenhuma frente concluída':'Nenhuma frente pendente')+'</b>'+(S.frFiltro==='pendentes'?'Use "Nova frente" ou clique em um horário vazio do calendário.':'')+'</div>';return}
+  if(!list.length){box.innerHTML='<div class="empty"><b>'+(S.frFiltro==='paradas'?'Nenhuma demanda parada':S.frFiltro==='concluidas'?'Nenhuma demanda concluída':'Nenhuma demanda pendente')+'</b>'+(S.frFiltro==='pendentes'?'Use "Nova demanda" ou clique em um horário vazio do calendário.':'')+'</div>';return}
   box.innerHTML=list.map((e,i)=>{const t=e.t,p=prog(t,e.k),ai=t.resumoIA&&t.resumoIA.texto;
     const dias=Math.floor((Date.now()-lastAct(t))/864e5);
     return '<button type="button" class="fr p'+(t.prioridade||2)+(e.late?' late':'')+(e.done?' done':'')+'" data-i="'+i+'">'+
@@ -710,7 +710,7 @@ function openPessoas(){
   const[a,b,lab]=doneRange(),l=doneLog(a,b);const cnt={};l.items.forEach(x=>cnt[x.por]=(cnt[x.por]||0)+1);const fc={};l.frentes.forEach(x=>fc[x.por]=(fc[x.por]||0)+1);
   const ids=[...new Set(Object.keys(cnt).concat(Object.keys(fc)))].sort((x,y)=>(cnt[y]||0)-(cnt[x]||0));
   overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Realizadas por pessoa</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="md-s"><div class="plist"><div class="meta">Período: '+esc(lab)+'</div>'+
-    (ids.length?ids.map(id=>'<div class="drow"><span class="p"><span class="dot" style="background:'+esc(pColor(id))+'"></span><b>'+esc(pName(id))+'</b></span><span class="mono">'+(cnt[id]||0)+' tarefas</span><span class="mono">'+(fc[id]||0)+' frentes</span></div>').join(''):'<div class="empty">Nada realizado no período.</div>')+'</div></div></div>');
+    (ids.length?ids.map(id=>'<div class="drow"><span class="p"><span class="dot" style="background:'+esc(pColor(id))+'"></span><b>'+esc(pName(id))+'</b></span><span class="mono">'+(cnt[id]||0)+' tarefas</span><span class="mono">'+(fc[id]||0)+' demandas</span></div>').join(''):'<div class="empty">Nada realizado no período.</div>')+'</div></div></div>');
 }
 
 /* ---------- calendário ---------- */
@@ -736,7 +736,7 @@ function rangeLabel(){
   return fmtDM(ds[0])+' a '+fmtD(ds[ds.length-1]);
 }
 function hourH(){const c=$('#cal');const top=c.getBoundingClientRect().top+scrollY;const avail=innerHeight-top-62;return Math.max(24,Math.min(64,Math.floor(avail/NH)))}
-const badgeHTML=(k,l,short)=>l&&l.length?'<button type="button" class="badge'+(l.some(f=>f.late)?' late':'')+'" data-day="'+k+'">'+l.length+(short?(l.length===1?' frente':' frentes'):(l.length===1?' frente pendente':' frentes pendentes'))+'</button>':'';
+const badgeHTML=(k,l,short)=>l&&l.length?'<button type="button" class="badge'+(l.some(f=>f.late)?' late':'')+'" data-day="'+k+'">'+l.length+(short?(l.length===1?' demanda':' demandas'):(l.length===1?' demanda pendente':' demandas pendentes'))+'</button>':'';
 function layout(list){
   list.sort((a,b)=>a.start-b.start||b.dur-a.dur);
   const cl=[];let cur=[],end=0;
@@ -848,7 +848,7 @@ function renderYear(c){
 }
 function dayFrentes(k){
   const l=PEND[k]||[],day=parseYmd(k);
-  const el=overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Frentes pendentes em '+fmtD(day)+'</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="md-s"><div class="plist">'+
+  const el=overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Demandas pendentes em '+fmtD(day)+'</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="md-s"><div class="plist">'+
     l.map((f,i)=>{const p=prog(f.t,f.k),ai=f.t.resumoIA&&f.t.resumoIA.texto;return '<button type="button" class="fr p'+(f.t.prioridade||2)+(f.late?' late':'')+'" data-i="'+i+'"><span class="fr-top"><span class="fr-t">'+esc(f.t.descricao)+'</span>'+(f.late?'<span class="pill st-atrasada">Atrasada</span>':'')+'</span>'+(ai?'<span class="fr-ai">'+esc(ai)+'</span>':'')+'<span class="fr-m">'+esc(pName(f.t.responsavel))+'<span>prazo <span class="mono">'+hm(f.prazo)+'</span></span></span><span class="fr-p"><span class="prog"><i style="width:'+(p.n?p.d/p.n*100:0)+'%"></i></span><span class="mono">'+p.d+' de '+p.n+'</span></span></button>'}).join('')+'</div></div></div>');
   el.addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b){const f=l[+b.dataset.i];closeLayer();openFrente({t:f.t,k:f.k})}});
 }
@@ -868,7 +868,7 @@ function toggleItem(t,k,itemId,val){
   const up={checklist:cl,ultimaAtividade:nowIso()};
   if(all!==was){const m=all?{por:S.me.pessoa||null,em:nowIso()}:null;if(k)up.concluidas={[k]:m};else{up.concluidoEm=m&&m.em;up.concluidoPor=m&&m.por}}
   queueResumo(t.id);
-  return write(t.id,()=>tRef(t.id).update(up)).then(()=>{if(all&&!was)toast('Frente concluída: todas as tarefas foram feitas.')});
+  return write(t.id,()=>tRef(t.id).update(up)).then(()=>{if(all&&!was)toast('Demanda concluída: todas as tarefas foram feitas.')});
 }
 /* marca feita, pedindo registro quando a configuração exigir */
 function setDone(t,k,itemId,val){
@@ -908,8 +908,8 @@ async function gerarResumo(id,s){
   const prazo=k?parseYmd(k):parseLocal(t.inicio);
   const linhas=(t.checklist||[]).map(it=>{const o=mkItem(t,it,k);return '- '+(o.ap?'aprovação ':'')+(o.done?(o.ap?'aprovada':'feita'):o.atrasada?'atrasada':'pendente')+(o.dev&&!o.done?' (devolvida: '+(o.dev.obs||'')+')':'')+' | '+it.descricao+' | data '+fmtDM(o.start)+' | responsável '+pName(o.resp)}).join('\n');
   const rg=regs.map(r=>'- '+fmtDM(new Date(r.em))+' '+pName(r.por)+' sobre "'+r.itemDesc+'": '+r.texto).join('\n')||'- nenhum';
-  const prompt='Você resume o status de uma frente de trabalho administrativa de uma empresa, em português do Brasil.\n'+
-    'Responda com UMA frase curtíssima, de no máximo 14 palavras, dizendo o status e o próximo passo concreto para concluir a frente.\n'+
+  const prompt='Você resume o status de uma demanda de trabalho administrativa de uma empresa, em português do Brasil.\n'+
+    'Responda com UMA frase curtíssima, de no máximo 14 palavras, dizendo o status e o próximo passo concreto para concluir a demanda.\n'+
     'Sem emojis, sem aspas, sem setas, sem markdown, sem símbolos especiais e sem ponto final. Use nomes de pessoas quando ajudar.\n\n'+
     'Hoje: '+fmtD(now)+'\nFrente: '+t.descricao+'\nResponsável: '+pName(t.responsavel)+'\nPrazo: '+(prazo?fmtD(prazo):'sem prazo')+'\n\nTarefas:\n'+linhas+'\n\nRegistros recentes:\n'+rg;
   try{
@@ -989,7 +989,7 @@ function toast(m){let t=$('.toast');if(!t){t=document.createElement('div');t.cla
 /* ---------- pop-up da frente ---------- */
 function newItem(resp=null){return{id:rid(),descricao:'',data:null,offset:0,hora:null,duracao:30,responsavel:resp||null,feito:false,feitos:{}}}
 function openFrente(opt){
-  if(opt.nova&&!canCreate()){toast('Seu perfil não permite criar frentes.');return}
+  if(opt.nova&&!canCreate()){toast('Seu perfil não permite criar demandas.');return}
   const t=opt.t||null,k=opt.k||null,isNew=!t,C=S.cfg;
   const v=opt.dados||(t?{descricao:t.descricao,tipo:t.tipo||'',responsavel:t.responsavel||'',prioridade:t.prioridade||2,start:parseLocal(t.inicio),recorrencia:t.recorrencia||{freq:'none'},visivelPara:t.visivelPara||[],checklist:t.checklist,modeloId:t.modeloId||''}
     :{descricao:'',tipo:C.obrig.tipo?'':(C.tipos[0]||''),responsavel:'',prioridade:2,start:opt.start||new Date(),recorrencia:{freq:'none'},visivelPara:[],checklist:[],modeloId:''});
@@ -1000,13 +1000,13 @@ function openFrente(opt){
   let meta='';
   if(t){meta='Criada'+(t.criadoEm?' em '+fmtD(new Date(t.criadoEm)):'')+(t.criadoPor?' por '+pName(t.criadoPor):'');
     const c=k?(t.concluidas&&t.concluidas[k]):(t.concluidoEm?{em:t.concluidoEm,por:t.concluidoPor}:null);if(c)meta+='. Concluída em '+fmtD(new Date(c.em))+(c.por?' por '+pName(c.por):'')}
-  const title=isNew?'Nova frente':'Frente'+(k?' de '+fmtD(parseYmd(k)):'');
+  const title=isNew?'Nova demanda':'Frente'+(k?' de '+fmtD(parseYmd(k)):'');
   const ai=t&&t.resumoIA&&t.resumoIA.texto;
   const el=overlay('<div class="md" role="dialog" aria-modal="true" aria-labelledby="mdT"><form id="tf" novalidate style="display:contents"><div class="md-h"><h2 id="mdT">'+esc(title)+'</h2><span class="meta" id="m-sum"></span><button type="button" class="btn sm" data-x>Fechar</button></div><div class="md-s"><div class="md-b">'+
     (t?'<div class="full ai"><span class="lb">Resumo IA</span><span id="m-ai">'+(ai?esc(ai):'Ainda não gerado')+'</span><button type="button" class="btn sm" id="m-ai-btn">Atualizar resumo</button></div>':'')+
-    '<div class="fld full"><label for="m-desc">Descrição da frente</label><textarea id="m-desc" required placeholder="Ex.: Comprar cadeiras para a sala de reunião">'+esc(v.descricao)+'</textarea></div>'+
-    '<div class="fld half"><label for="m-resp">Responsável pela frente</label><select id="m-resp">'+pOpts(v.responsavel,'Selecione')+'</select></div>'+
-    '<div class="fld"><label for="m-data" id="m-data-lb">Prazo da frente</label><input id="m-data" type="date" value="'+(v.start?ymd(v.start):'')+'" required></div>'+
+    '<div class="fld full"><label for="m-desc">Descrição da demanda</label><textarea id="m-desc" required placeholder="Ex.: Comprar cadeiras para a sala de reunião">'+esc(v.descricao)+'</textarea></div>'+
+    '<div class="fld half"><label for="m-resp">Responsável pela demanda</label><select id="m-resp">'+pOpts(v.responsavel,'Selecione')+'</select></div>'+
+    '<div class="fld"><label for="m-data" id="m-data-lb">Prazo da demanda</label><input id="m-data" type="date" value="'+(v.start?ymd(v.start):'')+'" required></div>'+
     '<div class="fld"><label for="m-hora">Horário</label><input id="m-hora" type="time" step="900" value="'+(v.start?hm(v.start):'09:00')+'"></div>'+
     '<div class="fld"><label for="m-tipo">Tipo'+(C.obrig.tipo?' (obrigatório)':'')+'</label><select id="m-tipo">'+(C.obrig.tipo?'<option value="">Selecione</option>':'')+tipos.map(x=>'<option '+(x===v.tipo?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>'+
     '<div class="fld"><label for="m-rec">Recorrência</label><select id="m-rec">'+Object.keys(RECS).map(x=>'<option value="'+x+'" '+(r.freq===x?'selected':'')+'>'+RECS[x]+'</option>').join('')+'</select></div>'+
@@ -1016,7 +1016,7 @@ function openFrente(opt){
     '<div class="fld half" id="w-dias"><span class="lb">Dias da semana</span><div class="wdays">'+[1,2,3,4,5,6,0].map(i=>'<label><input type="checkbox" value="'+i+'" '+((r.dias&&r.dias.length?r.dias:[(v.start||new Date()).getDay()]).includes(i)?'checked':'')+'>'+DIAS[i]+'</label>').join('')+'</div></div>'+
     '<div class="meta full" id="w-prox"></div>'+
     '<div class="clsec"><div class="clsec-h"><b>Checklist de tarefas</b><select id="m-modelo" aria-label="Modelo de checklist"><option value="">Modelo: Personalizado</option>'+C.modelos.map(m=>'<option value="'+esc(m.id)+'" '+(m.id===v.modeloId?'selected':'')+'>Modelo: '+esc(m.nome)+'</option>').join('')+'</select><span class="meta" id="m-clnote"></span></div>'+
-      '<div class="cl" id="m-cl"></div><div class="row"><button type="button" class="btn sm" id="m-cl-add">Adicionar tarefa</button><span class="meta">Tarefas de execução usam automaticamente o responsável da frente. Em recorrências, acompanham a data de cada repetição'+(C.obrig.horaTarefa?' e precisam de horário':'')+'.</span></div></div>'+
+      '<div class="cl" id="m-cl"></div><div class="row"><button type="button" class="btn sm" id="m-cl-add">Adicionar tarefa</button><span class="meta">Tarefas de execução usam automaticamente o responsável da demanda. Em recorrências, acompanham a data de cada repetição'+(C.obrig.horaTarefa?' e precisam de horário':'')+'.</span></div></div>'+
     '<div class="fld full"><span class="lb">Também podem ver</span><div class="vis" id="m-vis">'+activeP().map(p=>'<label><input type="checkbox" value="'+esc(p.id)+'" '+(v.visivelPara.includes(p.id)?'checked':'')+'><span class="dot" style="background:'+esc(p.cor)+'"></span>'+esc(p.nome)+'</label>').join('')+'</div></div>'+
     (t?'<div class="fld full"><span class="lb">Histórico de registros</span><div class="hist" id="m-hist"><div class="meta">Carregando...</div></div></div>':'')+
     (meta?'<div class="full meta">'+esc(meta)+'</div>':'')+'<div class="full err" id="m-err" hidden></div>'+
@@ -1056,16 +1056,16 @@ function openFrente(opt){
         (ap?'<select data-k="cargoId" aria-label="Cargo aprovador">'+cOpts(it.cargoId)+'</select><span class="apinfo">Aprova: '+(apP?esc(pName(apP)):'cargo sem titular')+(cg&&cg!==it.cargoId?' (alçada: '+esc(cargoNome(cg))+')':'')+'</span>'+(dec?'<button type="button" class="btn sm pri" data-dec>Decidir</button>':'')
           :'<label class="sm-f"><input type="number" min="5" step="5" data-k="duracao" value="'+(it.duracao||30)+'" aria-label="Duração em minutos">min</label>'+
            '<input type="number" min="0" step="0.01" data-k="valor" value="'+(it.valor==null?'':it.valor)+'" placeholder="Valor R$" aria-label="Valor" style="width:110px">'+
-           '<select aria-label="Responsável da tarefa" title="Definido automaticamente pelo responsável da frente" disabled>'+pOpts(frontResp,'Responsável')+'</select>')+
+           '<select aria-label="Responsável da tarefa" title="Definido automaticamente pelo responsável da demanda" disabled>'+pOpts(frontResp,'Responsável')+'</select>')+
         '<button type="button" class="btn sm" data-up '+(i?'':'disabled')+'>Subir</button><button type="button" class="btn sm danger" data-rm '+(cl.length>1?'':'disabled')+'>Remover</button></div>'+
         (dv&&!chk?'<div class="clr-r dev">Devolvido por '+esc(pName(dv.por))+': '+esc(dv.obs||'')+'</div>':'')+
-        (savedItem(it.id)?'<div class="clr-r"><input type="text" data-reg placeholder="Registrar atividade nesta etapa" aria-label="Registro de atividade"><button type="button" class="btn sm" data-regbtn>Registrar</button></div><div class="clr-r anx" data-anx="'+esc(it.id)+'"></div>':(t?'<div class="clr-r meta">Salve a frente para registrar atividades e anexar arquivos nesta etapa.</div>':''))+'</div>'}).join('');
+        (savedItem(it.id)?'<div class="clr-r"><input type="text" data-reg placeholder="Registrar atividade nesta etapa" aria-label="Registro de atividade"><button type="button" class="btn sm" data-regbtn>Registrar</button></div><div class="clr-r anx" data-anx="'+esc(it.id)+'"></div>':(t?'<div class="clr-r meta">Salve a demanda para registrar atividades e anexar arquivos nesta etapa.</div>':''))+'</div>'}).join('');
     paintAnx();
     sum();
   }
   const syncRec=()=>{
     const f=recSel.value;$m('#w-int').hidden=f==='none'||f==='weekdays';$m('#w-dias').hidden=f!=='weekly';$m('#w-ate').hidden=f==='none';
-    $m('#m-data-lb').textContent=f==='none'?'Prazo da frente':'Primeira data';
+    $m('#m-data-lb').textContent=f==='none'?'Prazo da demanda':'Primeira data';
     const n=Math.max(1,Math.round(+$m('#m-int').value||1)),u=UNIT[f];$m('#m-unit').textContent=u?(n===1?u[0]:u[1]):'';
     const pv=$m('#w-prox');
     if(f==='none'||!$m('#m-data').value)pv.textContent='';
@@ -1133,10 +1133,10 @@ function openFrente(opt){
   const err=(m,i)=>{const e=$m('#m-err');e.textContent=m;e.hidden=false;e.scrollIntoView({block:'nearest'});if(i!=null){const row=clBox.querySelector('.clr[data-i="'+i+'"]');if(row){row.classList.add('bad');row.scrollIntoView({block:'nearest'})}}};
   $m('#tf').addEventListener('submit',e=>{
     e.preventDefault();const d=read();const isR=d.recorrencia.freq!=='none';
-    if(!d.descricao)return err('Escreva a descrição da frente.');
-    if(!d.responsavel)return err('Escolha o responsável pela frente.');
-    if(!d.start)return err('Informe o prazo da frente.');
-    if(C.obrig.tipo&&!d.tipo)return err('Escolha o tipo da frente.');
+    if(!d.descricao)return err('Escreva a descrição da demanda.');
+    if(!d.responsavel)return err('Escolha o responsável pela demanda.');
+    if(!d.start)return err('Informe o prazo da demanda.');
+    if(C.obrig.tipo&&!d.tipo)return err('Escolha o tipo da demanda.');
     if(d.recorrencia.freq==='weekly'&&!d.recorrencia.dias.length)return err('Escolha pelo menos um dia da semana.');
     if(!d.checklist.length)return err('Cadastre pelo menos uma tarefa no checklist.');
     for(let i=0;i<cl.length;i++){const it=cl[i];if(!(it.descricao||'').trim())continue;
@@ -1150,7 +1150,7 @@ function openFrente(opt){
     const del=$m('#m-del');if(del)del.onclick=()=>{
       if(k&&isRec(t)){const ch=$m('#m-choice');ch.innerHTML='<div class="choice"><p>Excluir quais datas?</p><div class="row"><button type="button" class="btn danger" id="d1">Apenas '+fmtDM(parseYmd(k))+'</button><button type="button" class="btn danger" id="d2">Toda a série</button></div></div>';
         ch.querySelector('#d1').onclick=()=>{write(t.id,()=>tRef(t.id).update({excecoes:{[k]:{removida:true}}}));closeLayer()};ch.querySelector('#d2').onclick=()=>{closeLayer();delFrente(t)};return}
-      closeLayer();ask('Excluir a frente "'+(t.descricao||'')+'" e todas as tarefas dela?',[['Excluir','danger',()=>delFrente(t)]]);
+      closeLayer();ask('Excluir a demanda "'+(t.descricao||'')+'" e todas as tarefas dela?',[['Excluir','danger',()=>delFrente(t)]]);
     };
     const dup=$m('#m-dup');if(dup)dup.onclick=()=>{const d=read();d.descricao+=' (cópia)';d.start=d.start||new Date();d.checklist=d.checklist.map(it=>Object.assign({},it,{id:rid(),feito:false,feitoEm:null,feitoPor:null,feitos:{}}));closeLayer();openFrente({nova:true,dados:d})};
   }
@@ -1162,7 +1162,7 @@ function createFrente(d){
   const doc={descricao:d.descricao,tipo:d.tipo||null,responsavel:d.responsavel,prioridade:d.prioridade,inicio:toLocal(d.start),recorrencia:d.recorrencia,visivelPara:d.visivelPara,checklist:d.checklist,modeloId:d.modeloId,
     concluidas:{},excecoes:{},criadoEm:nowIso(),criadoPor:S.me.pessoa||null,ultimaAtividade:nowIso(),concluidoEm:all?nowIso():null,concluidoPor:all?S.me.pessoa||null:null};
   queueResumo(ref.id);
-  write(ref.id,()=>ref.set(doc)).then(()=>toast(recToast(d,isR?'Frente recorrente agendada.':'Frente criada.')));
+  write(ref.id,()=>ref.set(doc)).then(()=>toast(recToast(d,isR?'Demanda recorrente agendada.':'Demanda criada.')));
 }
 function saveFrente(t,d){
   const isR=d.recorrencia.freq!=='none';
@@ -1170,9 +1170,9 @@ function saveFrente(t,d){
     recorrencia:{freq:d.recorrencia.freq,dias:d.recorrencia.dias,intervalo:d.recorrencia.intervalo,ate:d.recorrencia.ate},visivelPara:d.visivelPara,checklist:d.checklist,ultimaAtividade:nowIso()};
   if(!isR){const all=d.checklist.every(it=>it.feito);if(all&&!t.concluidoEm){up.concluidoEm=nowIso();up.concluidoPor=S.me.pessoa||null}if(!all){up.concluidoEm=null;up.concluidoPor=null}}
   queueResumo(t.id);
-  write(t.id,()=>tRef(t.id).update(up)).then(()=>toast(recToast(d,'Frente salva.')));
+  write(t.id,()=>tRef(t.id).update(up)).then(()=>toast(recToast(d,'Demanda salva.')));
 }
-function delFrente(t){write(t.id,()=>tRef(t.id).delete()).then(()=>toast('Frente excluída.'))}
+function delFrente(t){write(t.id,()=>tRef(t.id).delete()).then(()=>toast('Demanda excluída.'))}
 
 /* ---------- resumo do dia (WhatsApp) ---------- */
 function msgDia(p){
@@ -1240,17 +1240,17 @@ function renderConfig(){
       return '<tr data-ci="'+ci+'"><td><input type="text" data-c="nome" value="'+esc(c.nome)+'" aria-label="Nome do cargo"></td><td><select data-c="titular" aria-label="Titular">'+po(c.titular)+'</select></td><td><select data-c="substituto" aria-label="Substituto">'+po(c.substituto)+'</select></td>'+
         '<td>'+(now?'<span class="dot" style="background:'+esc(pColor(now))+'"></span> '+esc(pName(now))+(now!==c.titular&&c.titular?' <span class="pill st-parada">substituto</span>':''):'<span class="pill st-atrasada">Sem titular</span>')+'</td><td><button type="button" class="btn sm danger" data-crm>Remover</button></td></tr>'}).join('')+
     '</tbody></table></div><form class="row" id="addC"><input class="f" id="novoCargo" type="text" placeholder="Novo cargo" required><button class="btn" type="submit">Adicionar cargo</button></form></section>'+
-  '<section class="panel cfgsec"><h3>Permissões</h3><p class="note">Administrador: tudo, inclusive esta tela. Gestor: vê e edita todas as frentes. Colaborador: vê as frentes em que é responsável, tem tarefas ou foi liberado.</p>'+
-    '<label class="chk"><input type="checkbox" data-perm="colabCriaFrente" '+(C.perms.colabCriaFrente!==false?'checked':'')+'> Colaborador pode criar frentes</label>'+
-    '<label class="chk"><input type="checkbox" data-perm="colabExcluiFrente" '+(C.perms.colabExcluiFrente?'checked':'')+'> Colaborador pode excluir frentes</label></section>'+
-  '<section class="panel cfgsec"><h3>Campos obrigatórios</h3><p class="note">Sempre obrigatórios: descrição, responsável e prazo da frente; ao menos uma tarefa; data e responsável em cada tarefa.</p>'+
-    '<label class="chk"><input type="checkbox" data-obr="tipo" '+(C.obrig.tipo?'checked':'')+'> Tipo da frente</label>'+
+  '<section class="panel cfgsec"><h3>Permissões</h3><p class="note">Administrador: tudo, inclusive esta tela. Gestor: vê e edita todas as demandas. Colaborador: vê as demandas em que é responsável, tem tarefas ou foi liberado.</p>'+
+    '<label class="chk"><input type="checkbox" data-perm="colabCriaFrente" '+(C.perms.colabCriaFrente!==false?'checked':'')+'> Colaborador pode criar demandas</label>'+
+    '<label class="chk"><input type="checkbox" data-perm="colabExcluiFrente" '+(C.perms.colabExcluiFrente?'checked':'')+'> Colaborador pode excluir demandas</label></section>'+
+  '<section class="panel cfgsec"><h3>Campos obrigatórios</h3><p class="note">Sempre obrigatórios: descrição, responsável e prazo da demanda; ao menos uma tarefa; data e responsável em cada tarefa.</p>'+
+    '<label class="chk"><input type="checkbox" data-obr="tipo" '+(C.obrig.tipo?'checked':'')+'> Tipo da demanda</label>'+
     '<label class="chk"><input type="checkbox" data-obr="horaTarefa" '+(C.obrig.horaTarefa?'checked':'')+'> Horário em cada tarefa</label>'+
     '<label class="chk"><input type="checkbox" data-obr="registroAoConcluir" '+(C.obrig.registroAoConcluir?'checked':'')+'> Registro de atividade ao concluir uma tarefa</label>'+
-    '<div class="row"><span>Considerar frente parada depois de</span><input class="f" id="diasPar" type="number" min="1" max="60" value="'+(C.diasParada||7)+'" style="width:70px"><span>dias sem atividade</span></div></section>'+
-  '<section class="panel cfgsec"><h3>Modelos de checklist e fluxos</h3><p class="note">Cada etapa é de Execução ou de Aprovação. Na execução, o cargo define o responsável sugerido. Na aprovação, o cargo define o aprovador, e as alçadas trocam o aprovador conforme o valor total da frente (soma dos valores das etapas). "Dias +" é quantos dias depois do prazo inicial a etapa cai. Ao reprovar, a etapa de execução anterior volta para quem a fez.</p><div id="mods"></div>'+
+    '<div class="row"><span>Considerar demanda parada depois de</span><input class="f" id="diasPar" type="number" min="1" max="60" value="'+(C.diasParada||7)+'" style="width:70px"><span>dias sem atividade</span></div></section>'+
+  '<section class="panel cfgsec"><h3>Modelos de checklist e fluxos</h3><p class="note">Cada etapa é de Execução ou de Aprovação. Na execução, o cargo define o responsável sugerido. Na aprovação, o cargo define o aprovador, e as alçadas trocam o aprovador conforme o valor total da demanda (soma dos valores das etapas). "Dias +" é quantos dias depois do prazo inicial a etapa cai. Ao reprovar, a etapa de execução anterior volta para quem a fez.</p><div id="mods"></div>'+
     '<div class="row"><button class="btn" type="button" id="modAdd">Novo modelo</button><button class="btn pri" type="button" id="modSave">Salvar modelos</button></div></section>'+
-  '<section class="panel cfgsec"><h3>Tipos de frente</h3><div class="tchips">'+C.tipos.map((x,i)=>'<span class="tchip">'+esc(x)+'<button type="button" data-rmt="'+i+'">Remover</button></span>').join('')+'</div>'+
+  '<section class="panel cfgsec"><h3>Tipos de demanda</h3><div class="tchips">'+C.tipos.map((x,i)=>'<span class="tchip">'+esc(x)+'<button type="button" data-rmt="'+i+'">Remover</button></span>').join('')+'</div>'+
     '<form class="row" id="addT"><input class="f" id="novoTipo" type="text" placeholder="Novo tipo" required><button class="btn" type="submit">Adicionar tipo</button></form></section></div>';
   drawMods();
   if(S.user){const ids=ps.filter(p=>p.userId).map(p=>p.userId);if(ids.length)S.user.profiles(ids).then(m=>{v.querySelectorAll('[data-uid]').forEach(sp=>{const pr=m[sp.dataset.uid];sp.textContent=pr&&pr.name?'como '+pr.name:''})}).catch(()=>{})}
@@ -1317,7 +1317,7 @@ function drawMods(){
 async function genInvite(p){
   if(!p.email){toast('Cadastre o e-mail da pessoa antes de gerar o convite.');return}
   try{await syncPessoaAccess(p)}catch(e){toast('Não foi possível liberar esse e-mail no Supabase.');return}
-  const txt='Olá, '+p.nome+'. Você foi cadastrado na Central de Tarefas Grupo Froese.\n\n1. Abra o link: '+PAGE_URL+'\n2. Clique em "Criar primeiro acesso".\n3. Use exatamente este e-mail: '+p.email+'\n4. Crie uma senha com pelo menos 6 caracteres.\n5. Depois de criar o acesso, o login fica liberado imediatamente.\n\nDepois disso você verá as frentes e tarefas liberadas para o seu perfil.';
+  const txt='Olá, '+p.nome+'. Você foi cadastrado na Central de Tarefas Grupo Froese.\n\n1. Abra o link: '+PAGE_URL+'\n2. Clique em "Criar primeiro acesso".\n3. Use exatamente este e-mail: '+p.email+'\n4. Crie uma senha com pelo menos 6 caracteres.\n5. Depois de criar o acesso, o login fica liberado imediatamente.\n\nDepois disso você verá as demandas e tarefas liberadas para o seu perfil.';
   const num=digits(p.whatsapp);
   const el=overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Convite de '+esc(p.nome)+'</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="md-s"><div class="msg">'+
     '<p class="meta">O acesso foi liberado no Supabase para <b>'+esc(p.email)+'</b>.</p>'+
@@ -1377,7 +1377,7 @@ async function start(){
     render();
   },()=>toast('Conexão com a equipe interrompida. Recarregue a página.'));
   db.collection('tarefas').onSnapshot(s=>{S.tarefas={};s.docs.forEach(d=>{S.tarefas[d.id]=Object.assign({id:d.id},d.data())});S.loaded.t=true;render()},
-    ()=>toast('Conexão com as frentes interrompida. Recarregue a página.'));
+    ()=>toast('Conexão com as demandas interrompida. Recarregue a página.'));
   db.doc('config/geral').onSnapshot(s=>{const d=s.exists?s.data():{};const c=clone(CFG_DEF);
     if(Array.isArray(d.tipos)&&d.tipos.length)c.tipos=d.tipos.slice();if(Array.isArray(d.modelos))c.modelos=clone(d.modelos);
     if(Array.isArray(d.cargos))c.cargos=clone(d.cargos);if(d.obrig)Object.assign(c.obrig,d.obrig);if(d.perms)Object.assign(c.perms,d.perms);if(d.diasParada)c.diasParada=d.diasParada;
