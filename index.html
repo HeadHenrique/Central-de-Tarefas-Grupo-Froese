@@ -38,6 +38,9 @@
 .cbtn{position:absolute;top:50%;transform:translateY(-50%);right:5px;width:12px;height:12px;border-radius:50%;border:1px solid var(--muted);background:var(--cc,var(--surface));cursor:pointer;padding:0;opacity:0;z-index:3}
 .blk:hover .cbtn,.cbtn:focus-visible{opacity:1}.sw{display:flex;flex-wrap:wrap;gap:8px}.sw button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer}.sw button.on{border-color:var(--fg)}
 #corIn{width:44px;height:30px;border:1px solid var(--line);border-radius:6px;padding:2px;background:none;cursor:pointer}.blk.cc{background:color-mix(in srgb,var(--cc) 16%,var(--surface));border-color:var(--cc)}.chip.cc{background:color-mix(in srgb,var(--cc) 18%,var(--surface))}
+.atlas-quick-demand{padding:8px 8px 0}
+.atlas-quick-demand input{width:100%;min-height:34px;background:#fbf9ff;border-color:#e4ddf1}
+.atlas-quick-demand input:focus{border-color:#9674c3;box-shadow:0 0 0 3px rgba(150,116,195,.10)}
 @media(max-width:700px){.frow{grid-template-columns:auto minmax(0,1fr)}.frow .meta{grid-column:2}.md.ctl{min-width:100%}}
 </style></head><body>
 <title>Atlas — Central de Tarefas</title>
@@ -1209,7 +1212,10 @@ select.f:focus,input.f:focus{border-color:#a586e5 !important;box-shadow:0 0 0 3p
           <div class="sec-h"><h2>Demandas <span class="cnt mono" id="frCount">0</span></h2>
             <select id="frFiltro" aria-label="Quais demandas"><option value="pendentes">Pendentes</option><option value="paradas">Paradas</option><option value="concluidas">Concluídas</option></select>
             <span class="grow"></span><button class="btn sm" id="btnAI" type="button" title="Gera ou atualiza o resumo das demandas com mudanças">Atualizar resumos</button></div>
-          <div class="lst" id="frl"><div class="empty"><b>Carregando demandas</b>As demandas aparecem aqui.</div></div>
+          <form class="atlas-quick-demand" id="qk">
+  <input class="f" id="qkIn" type="text" placeholder="Criar demanda rápida e pressionar Enter" aria-label="Criar demanda rápida" autocomplete="off">
+</form>
+<div class="lst" id="frl"><div class="empty"><b>Carregando demandas</b>As demandas aparecem aqui.</div></div>
         </section>
       </aside>
       <section class="calcol" aria-label="Calendário de tarefas">
@@ -1705,6 +1711,32 @@ function renderDemandas(){
 }
 $('#frl').addEventListener('click',e=>{const b=e.target.closest('.fr');if(!b)return;const en=$('#frl')._list[+b.dataset.i];if(en)openDemanda({t:en.t,k:en.k})});
 $('#frFiltro').onchange=e=>{S.frFiltro=e.target.value;render()};
+$('#qk').addEventListener('submit',e=>{
+  e.preventDefault();
+  const inp=$('#qkIn'),txt=inp.value.trim();if(!txt)return;
+  if(!S.db||!S.loaded.t||!canCreate())return;
+  const me=S.me.pessoa,st=new Date();st.setMinutes(st.getMinutes()<30?30:60,0,0);
+  if(!me||!S.frentes.geral){
+    openDemanda({nova:true,start:st,dados:{grupoId:S.frentes.geral?'geral':null,descricao:txt,tipo:S.cfg.tipos[0]||'',responsavel:me||'',prioridade:2,start:st,recorrencia:{freq:'none'},visivelPara:[],checklist:[],modeloId:''}});
+    inp.value='';return;
+  }
+  createDemanda({
+    grupoId:'geral',
+    descricao:txt,
+    tipo:S.cfg.tipos[0]||null,
+    responsavel:me,
+    prioridade:2,
+    start:st,
+    recorrencia:{freq:'none',dias:[],intervalo:1,ate:null},
+    visivelPara:[],
+    modeloId:null,
+    colunas:null,
+    instrucoes:'',
+    tempo:S.cfg.tempoPadrao||30,
+    checklist:[{id:rid(),descricao:txt,data:ymd(st),offset:null,hora:null,duracao:30,responsavel:me,feito:false,feitos:{},tipo:'execucao'}]
+  });
+  inp.value='';
+});
 
 /* ---------- tarefas ---------- */
 function renderTarefas(){
