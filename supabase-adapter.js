@@ -280,8 +280,8 @@
     gate.hidden = true;
     gate.innerHTML = `
       <div class="auth-card">
-        <div class="auth-brand">Grupo Froese</div>
-        <h1>Central de Tarefas</h1>
+        <div class="auth-brand">Central de Tarefas</div>
+        <h1>Atlas</h1>
         <p>Entre com seu e-mail e senha. No primeiro acesso, crie sua conta usando o mesmo e-mail cadastrado pela administração. Não há confirmação por e-mail.</p>
         <form id="authForm">
           <div class="auth-field"><label for="authEmail">E-mail</label><input id="authEmail" type="email" autocomplete="email" required></div>
@@ -388,7 +388,7 @@
       <div class="auth-card auth-denied">
         <div class="auth-brand">Grupo Froese</div>
         <strong>Acesso não liberado</strong>
-        <p>O e-mail <b>${String(email || '')}</b> entrou no Supabase, mas ainda não está autorizado na Central de Tarefas.</p>
+        <p>O e-mail <b>${String(email || '')}</b> entrou no Supabase, mas ainda não está autorizado no Atlas.</p>
         <button class="auth-btn" id="authExit" type="button">Sair</button>
       </div>`;
     gate.querySelector('#authExit').onclick = async () => {
