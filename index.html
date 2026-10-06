@@ -311,7 +311,8 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
     <div class="who" id="who">Conectando...</div>
     <button class="btn" id="btnResumo" type="button" hidden>Resumo do dia</button>
     <button class="btn" id="btnCfg" type="button" hidden>Configurações</button>
-    <button class="btn" id="btnLogout" type="button" hidden>Sair</button>\n    <button class="btn pri" id="btnNova" type="button">Nova frente</button>
+    <button class="btn" id="btnLogout" type="button" hidden>Sair</button>
+    <button class="btn pri" id="btnNova" type="button">Nova frente</button>
   </header>
 
   <div id="painel">
@@ -373,7 +374,12 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
   <div id="cfgView" hidden></div>
 </div>
 <div id="layer"></div>
-<div id="layer2"></div>\n\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="./supabase-adapter.js"></script>\n<script>\n(function(){
+<div id="layer2"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-adapter.js"></script>
+<script>
+(function(){
 const DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const PRIOS={1:'Baixa',2:'Média',3:'Alta',4:'Crítica'};
@@ -563,7 +569,8 @@ function renderWho(){
   const p=S.me.pessoa&&S.pessoas[S.me.pessoa];
   w.innerHTML=p?'<span class="dot" style="background:'+esc(pColor(p.id))+'"></span><b>'+esc(p.nome)+'</b>'+(S.me.owner?' administrador':S.me.admin?' gestor':''):(S.me.owner?'<b>Administrador</b>':'Acesso não vinculado');
   $('#btnCfg').hidden=!S.me.owner;$('#btnCfg').textContent=S.view==='config'?'Voltar ao painel':'Configurações';$('#btnResumo').hidden=!S.me.admin||S.view==='config';
-  $('#btnNova').hidden=S.view==='config'||!canCreate();$('#btnLogout').hidden=!S.db;\n}
+  $('#btnNova').hidden=S.view==='config'||!canCreate();$('#btnLogout').hidden=!S.db;
+}
 function fillSelect(sel,opts,val){sel.innerHTML=opts.map(o=>'<option value="'+esc(o[0])+'">'+esc(o[1])+'</option>').join('');sel.value=opts.some(o=>o[0]===val)?val:opts[0][0];return sel.value}
 function renderFilters(){
   S.f.resp=fillSelect($('#fResp'),S.me.admin?[['todos','Todos os responsáveis']].concat(activeP().map(p=>[p.id,p.nome])):[['todos','Minhas e liberadas'],['meu','Somente minhas']],S.f.resp);
@@ -1225,7 +1232,7 @@ function renderConfig(){
         :'<span class="pill st-pendente">Aguardando</span>'+(p.codigoHash?' <span class="meta">código gerado</span>':'')+' <button type="button" class="btn sm" data-inv>Gerar convite</button>')+'</td>'+
       '<td><input type="checkbox" data-f="ativo" '+(p.ativo!==false?'checked':'')+' aria-label="Ativo"></td></tr>').join('')+
     '</tbody></table></div>'+
-    '<form class="row" id="addP"><input class="f" id="novoNome" type="text" placeholder="Nome" required><input class="f" id="novoEmail" type="email" placeholder="E-mail da conta Claude"><input class="f" id="novoWa" type="tel" placeholder="WhatsApp: 55 65 99999-0000"><button class="btn pri" type="submit">Cadastrar usuário</button></form></section>'+
+    '<form class="row" id="addP"><input class="f" id="novoNome" type="text" placeholder="Nome" required><input class="f" id="novoEmail" type="email" placeholder="E-mail de acesso"><input class="f" id="novoWa" type="tel" placeholder="WhatsApp: 55 65 99999-0000"><button class="btn pri" type="submit">Cadastrar usuário</button></form></section>'+
   '<section class="panel cfgsec"><h3>Cargos</h3><p class="note">Cada cargo tem um titular e um substituto. Quando o titular está em férias ou inativo, as aprovações e etapas do cargo vão para o substituto.</p>'+
     '<div class="eqt"><table style="min-width:760px"><thead><tr><th>Cargo</th><th>Titular</th><th>Substituto</th><th>Hoje responde</th><th></th></tr></thead><tbody id="cgBody">'+
     (C.cargos||[]).map((c,ci)=>{const now=aprovadorCargo(c.id);const po=sel=>'<option value="">Nenhum</option>'+activeP().map(p=>'<option value="'+esc(p.id)+'" '+(p.id===sel?'selected':'')+'>'+esc(p.nome)+(p.status==='ferias'?' (em férias)':'')+'</option>').join('');
@@ -1320,23 +1327,17 @@ async function genInvite(p){
     const fb=()=>{ta.focus();ta.select();try{document.execCommand('copy');done()}catch(x){toast('Selecione o texto e copie manualmente.')}};
     try{navigator.clipboard.writeText(txt).then(done,fb)}catch(x){fb()}};
 }
-$('#btnCfg').onclick=()=>{if(S.view==='config')closeConfig();else openConfig()};\n$('#btnLogout').onclick=()=>{if(window.froeseBackend)window.froeseBackend.signOut()};
+$('#btnCfg').onclick=()=>{if(S.view==='config')closeConfig();else openConfig()};
+$('#btnLogout').onclick=()=>{if(window.froeseBackend)window.froeseBackend.signOut()};
 
 /* ---------- primeiro acesso ---------- */
 function linkPessoa(p){if(window.froeseBackend&&window.froeseBackend.linkPerson)return window.froeseBackend.linkPerson(p.id);return write('p:'+p.id,()=>S.db.doc('pessoas/'+p.id).update({userId:S.me.id,vinculadoEm:nowIso()}))}
 function renderLink(){
   $('#painel').hidden=true;let box=$('#linkBox');
   if(!box){box=document.createElement('div');box.id='linkBox';box.className='panel';$('#painel').after(box)}
-  if(!S.me.id){box.innerHTML='<div class="link"><h3>Acesso não identificado</h3><p>Entre com a sua conta Claude pelo botão Entrar e abra novamente o link do convite.</p></div>';return}
-  if(box.dataset.on)return;box.dataset.on='1';
-  box.innerHTML='<div class="link"><h3>Primeiro acesso</h3><p>Digite o código de primeiro acesso que você recebeu no convite.</p>'+
-    '<div class="row"><input class="f mono" id="codeIn" type="text" placeholder="XXXX-XXXX" maxlength="9" autocomplete="off" style="font-size:16px;letter-spacing:.08em;width:160px" aria-label="Código de primeiro acesso"><button class="btn pri" id="codeBtn" type="button">Entrar</button></div>'+
-    '<p class="meta">Sem código? Peça ao administrador para gerar o seu convite.</p></div>';
-  const go=async()=>{const b=$('#codeBtn'),v=$('#codeIn').value.trim();if(!v)return;b.disabled=true;
-    try{for(const p of Object.values(S.pessoas)){if(p.userId||!p.codigoHash)continue;if(await hashCode(p.id,v)===p.codigoHash){await linkPessoa(p);toast('Acesso liberado. Bem-vindo, '+p.nome+'.');return}}
-      toast('Código inválido. Confira com o administrador.')}catch(e){toast('Não foi possível validar o código.')}
-    b.disabled=false};
-  $('#codeBtn').onclick=go;$('#codeIn').onkeydown=e=>{if(e.key==='Enter')go()};
+  box.dataset.on='1';
+  box.innerHTML='<div class="link"><h3>Perfil não vinculado</h3><p>Você entrou com <b>'+esc(S.authEmail||'este e-mail')+'</b>, mas não existe um cadastro de pessoa com esse mesmo e-mail. Peça ao administrador para conferir seu cadastro em Configurações.</p><button class="btn" id="linkSair" type="button">Sair</button></div>';
+  const b=$('#linkSair');if(b)b.onclick=()=>{if(window.froeseBackend)window.froeseBackend.signOut()};
 }
 
 /* ---------- eventos ---------- */
