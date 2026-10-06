@@ -1256,7 +1256,7 @@ select.f:focus,input.f:focus{border-color:#a586e5 !important;box-shadow:0 0 0 3p
         <div class="profile-menu" id="profileMenu" role="menu" hidden>
           <button type="button" id="btnAvatarUpload" role="menuitem"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h4l1.5-2h5L16 7h4v12H4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.8"/></svg>Trocar foto</button>
           <button type="button" id="btnLogout" role="menuitem" hidden><svg viewBox="0 0 24 24" fill="none"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Sair</button>
-          <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/webp" hidden>
+          <input type="file" id="avatarInput" accept="image/*,.heic,.heif,.avif" hidden>
         </div>
       </div>
 
@@ -1684,19 +1684,64 @@ function startNotificationLoop(){
   renderNotifications();
   ATLAS_NOTIF.timer=setInterval(renderNotifications,30000);
 }
+async function loadAvatarImage(file){
+  try{
+    if('createImageBitmap' in window)return await createImageBitmap(file,{imageOrientation:'from-image'});
+  }catch(e){}
+  return await new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Formato de imagem não suportado pelo navegador'))};
+    img.src=url;
+  });
+}
+async function canvasJpeg(canvas,quality){
+  return await new Promise((resolve,reject)=>canvas.toBlob(
+    b=>b?resolve(b):reject(new Error('Falha ao comprimir imagem')),
+    'image/jpeg',
+    quality
+  ));
+}
 async function prepAvatar(file){
-  if(!file||!/^image\/(jpeg|png|webp)$/.test(file.type))throw new Error('Formato inválido');
-  const bmp=await createImageBitmap(file),sc=Math.min(1,512/Math.max(bmp.width,bmp.height));
-  const c=document.createElement('canvas');c.width=Math.max(1,Math.round(bmp.width*sc));c.height=Math.max(1,Math.round(bmp.height*sc));
-  c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
-  const blob=await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('Falha ao processar imagem')),'image/jpeg',.86));
+  if(!file)throw new Error('Nenhuma imagem selecionada');
+  const looksImage=/^image\//i.test(file.type)||/\.(jpe?g|png|webp|heic|heif|gif|bmp|avif)$/i.test(file.name||'');
+  if(!looksImage)throw new Error('O arquivo selecionado não é uma imagem');
+
+  const img=await loadAvatarImage(file);
+  const iw=img.width||img.naturalWidth,ih=img.height||img.naturalHeight;
+  if(!iw||!ih)throw new Error('Não foi possível ler a imagem');
+
+  const LIMIT=9.5*1024*1024;
+  let maxSide=2048;
+  let scale=Math.min(1,maxSide/Math.max(iw,ih));
+  let w=Math.max(1,Math.round(iw*scale)),h=Math.max(1,Math.round(ih*scale));
+  const c=document.createElement('canvas'),ctx=c.getContext('2d',{alpha:false});
+  if(!ctx)throw new Error('Não foi possível processar a imagem');
+
+  let quality=.92,blob=null;
+  for(let round=0;round<10;round++){
+    c.width=w;c.height=h;
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+    ctx.drawImage(img,0,0,w,h);
+    blob=await canvasJpeg(c,quality);
+    if(blob.size<=LIMIT)break;
+
+    if(quality>.62)quality=Math.max(.62,quality-.10);
+    else{
+      w=Math.max(320,Math.round(w*.82));
+      h=Math.max(320,Math.round(h*.82));
+      quality=.78;
+    }
+  }
+  if(img&&typeof img.close==='function')try{img.close()}catch(e){}
+  if(!blob||blob.size>LIMIT)throw new Error('Não foi possível reduzir a imagem para menos de 10 MB');
   return blob;
 }
 async function uploadMyAvatar(file){
   if(!S.me.id||!S.me.pessoa||!window.froeseBackend||!window.froeseBackend.client)return;
   try{
     toast('Atualizando sua foto...');
-    const blob=await prepAvatar(file);if(blob.size>10*1024*1024)throw new Error('Imagem muito grande');
+    const blob=await prepAvatar(file);if(blob.size>10*1024*1024)throw new Error('Imagem comprimida acima do limite');
     const client=window.froeseBackend.client,path=S.me.id+'/avatar.jpg';
     const up=await client.storage.from('avatars').upload(path,blob,{contentType:'image/jpeg',cacheControl:'3600',upsert:true});
     if(up.error)throw up.error;
@@ -1706,7 +1751,7 @@ async function uploadMyAvatar(file){
     const rp=await client.rpc('update_my_avatar',{p_url:url});if(rp.error)throw rp.error;
     if(S.pessoas[S.me.pessoa])S.pessoas[S.me.pessoa].fotoUrl=url;
     renderWho();toast('Foto atualizada.');
-  }catch(e){console.error(e);toast('Não foi possível atualizar a foto. Use JPG, PNG ou WebP de até 10 MB.')}
+  }catch(e){console.error(e);toast('Não foi possível atualizar a foto. O Atlas tenta converter e comprimir automaticamente qualquer imagem compatível com o navegador para menos de 10 MB.')}
 }
 
 function fillSelect(sel,opts,val){sel.innerHTML=opts.map(o=>'<option value="'+esc(o[0])+'">'+esc(o[1])+'</option>').join('');sel.value=opts.some(o=>o[0]===val)?val:opts[0][0];return sel.value}
