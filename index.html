@@ -339,18 +339,18 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
     </div>
 
     <div class="main" id="main" style="margin-top:10px">
-      <aside class="side" aria-label="Demandas e tarefas">
+      <aside class="side" aria-label="Tarefas e demandas">
+        <section class="panel sec">
+          <div class="sec-h"><h2>Tarefas <span class="cnt mono" id="tkCount">0</span></h2>
+            <select id="tkFiltro" aria-label="Quais tarefas"><option value="pendentes" selected>Pendentes</option><option value="realizadas">Realizadas</option></select>
+            <span class="grow"></span><button class="btn sm" id="btnPessoa" type="button" hidden>Por pessoa</button></div>
+          <div class="lst" id="tkl"><div class="empty">As tarefas aparecem aqui.</div></div>
+        </section>
         <section class="panel sec">
           <div class="sec-h"><h2>Demandas <span class="cnt mono" id="frCount">0</span></h2>
             <select id="frFiltro" aria-label="Quais demandas"><option value="pendentes">Pendentes</option><option value="paradas">Paradas</option><option value="concluidas">Concluídas</option></select>
             <span class="grow"></span><button class="btn sm" id="btnAI" type="button" title="Gera ou atualiza o resumo das demandas com mudanças">Atualizar resumos</button></div>
           <div class="lst" id="frl"><div class="empty"><b>Carregando demandas</b>As demandas aparecem aqui.</div></div>
-        </section>
-        <section class="panel sec">
-          <div class="sec-h"><h2>Tarefas <span class="cnt mono" id="tkCount">0</span></h2>
-            <select id="tkFiltro" aria-label="Quais tarefas"><option value="proximas">Próximos 7 dias e atrasadas</option><option value="hoje">Para hoje</option><option value="atrasadas">Atrasadas</option><option value="realizadas">Realizadas no período</option></select>
-            <span class="grow"></span><button class="btn sm" id="btnPessoa" type="button" hidden>Por pessoa</button></div>
-          <div class="lst" id="tkl"><div class="empty">As tarefas aparecem aqui.</div></div>
         </section>
       </aside>
       <section class="calcol" aria-label="Calendário de tarefas">
@@ -415,7 +415,7 @@ const normEmail=e=>(e||'').trim().toLowerCase();
 const digits=s=>(s||'').replace(/\D/g,'');
 
 const S={db:null,user:null,me:{id:null,owner:false,admin:false,pessoa:null},tarefas:{},pessoas:{},cfg:clone(CFG_DEF),loaded:{t:false,p:false},
-  view:'main',mode:(innerWidth<700?'dia':'7d'),date:sod(new Date()),f:{resp:'todos',tipo:'',prio:''},busca:'',frFiltro:'pendentes',tkFiltro:'proximas',
+  view:'main',mode:(innerWidth<700?'dia':'7d'),date:sod(new Date()),f:{resp:'todos',tipo:'',prio:''},busca:'',frFiltro:'pendentes',tkFiltro:'pendentes',
   dn:{per:'semana',de:null,ate:null},dragging:false,pending:false,linking:false,hour:40};
 try{const v=JSON.parse(localStorage.getItem('ct-view')||'null');if(v&&v.mode)S.mode=v.mode}catch(e){}
 const saveView=()=>{try{localStorage.setItem('ct-view',JSON.stringify({mode:S.mode}))}catch(e){}};
@@ -589,7 +589,7 @@ function renderStats(){
   $('#stPar').textContent=par;$('#cPar').classList.toggle('warn',par>0);
   $('#dnRng').hidden=S.dn.per!=='intervalo';
   if(ok){const[a,b]=doneRange(),l=doneLog(a,b);$('#stRz').textContent=l.items.length;$('#stRzF').textContent='tarefas, '+l.frentes.length+(l.frentes.length===1?' demanda concluída':' demandas concluídas')}
-  $('#cHoje').classList.toggle('on',S.tkFiltro==='hoje');$('#cAtr').classList.toggle('on',S.tkFiltro==='atrasadas');
+  $('#cHoje').classList.remove('on');$('#cAtr').classList.remove('on');
   $('#cRz').classList.toggle('on',S.tkFiltro==='realizadas');$('#cPar').classList.toggle('on',S.frFiltro==='paradas');
   const week=ok?allItems(w0,w1,false):[];
   const ps=S.me.admin?activeP():activeP().filter(p=>p.id===S.me.pessoa);
@@ -597,7 +597,8 @@ function renderStats(){
     return '<div class="caprow"><span class="nm"><span class="dot" style="background:'+esc(p.cor)+'"></span>'+esc(p.nome)+'</span><span class="bar"><i class="'+(h>c?'over':'')+'" style="width:'+pc+'%"></i></span><span class="n mono">'+fmtH(h)+' / '+c+'h</span></div>'}).join('')||'<div class="meta">A equipe aparece aqui depois do login.</div>';
 }
 $('.stats').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||!S.db||!S.loaded.t)return;const a=b.dataset.act;
-  if(a==='hoje'||a==='atrasadas'||a==='realizadas'){S.tkFiltro=S.tkFiltro===a?'proximas':a;$('#tkFiltro').value=S.tkFiltro}
+  if(a==='realizadas'){S.tkFiltro=S.tkFiltro==='realizadas'?'pendentes':'realizadas';$('#tkFiltro').value=S.tkFiltro}
+  else if(a==='hoje'||a==='atrasadas'){S.tkFiltro='pendentes';$('#tkFiltro').value='pendentes'}
   else if(a==='paradas'){S.frFiltro=S.frFiltro==='paradas'?'pendentes':'paradas';$('#frFiltro').value=S.frFiltro}
   else if(a==='pendentes'){S.frFiltro='pendentes';$('#frFiltro').value='pendentes'}
   else if(a==='aprov'){openAprovacoes();return}
@@ -689,13 +690,17 @@ $('#frFiltro').onchange=e=>{S.frFiltro=e.target.value;render()};
 function renderTarefas(){
   const now=new Date(),t0=sod(now);let rows=[];
   $('#btnPessoa').hidden=S.tkFiltro!=='realizadas';
-  if(S.tkFiltro==='realizadas'){const[a,b]=doneRange();rows=doneLog(a,b).items.map(x=>Object.assign(mkItem(x.t,x.it,x.k),{em:x.em,por:x.por}))}
-  else if(S.tkFiltro==='hoje')rows=allItems(t0,addDays(t0,1)).sort((a,b)=>a.done-b.done||a.start-b.start);
-  else if(S.tkFiltro==='atrasadas')rows=allItems(addDays(t0,-120),now).filter(o=>o.atrasada).sort((a,b)=>a.start-b.start);
-  else rows=allItems(addDays(t0,-120),addDays(t0,8)).filter(o=>!o.done&&(o.atrasada||o.start>=t0)).sort((a,b)=>a.start-b.start);
+  if(S.tkFiltro==='realizadas'){
+    const[a,b]=doneRange();
+    rows=doneLog(a,b).items.map(x=>Object.assign(mkItem(x.t,x.it,x.k),{em:x.em,por:x.por}));
+  }else{
+    rows=allItems(addDays(t0,-120),addDays(t0,8))
+      .filter(o=>!o.done&&(o.atrasada||o.start>=t0))
+      .sort((a,b)=>a.start-b.start);
+  }
   TK=rows;$('#tkCount').textContent=rows.length;
   const box=$('#tkl');
-  if(!rows.length){box.innerHTML='<div class="empty">'+({hoje:'Nenhuma tarefa para hoje.',atrasadas:'Nenhuma tarefa atrasada.',realizadas:'Nada realizado no período.',proximas:'Nenhuma tarefa pendente nos próximos 7 dias.'})[S.tkFiltro]+'</div>';return}
+  if(!rows.length){box.innerHTML='<div class="empty">'+(S.tkFiltro==='realizadas'?'Nenhuma tarefa realizada no período.':'Nenhuma tarefa pendente.')+'</div>';return}
   box.innerHTML=rows.map((o,i)=>'<div class="tk'+(o.atrasada?' late':'')+(o.done?' done':'')+'" data-i="'+i+'">'+
     (o.ap?'':'<input type="checkbox" aria-label="Tarefa feita" '+(o.done?'checked':'')+'>')+'<div class="tk-x"><div class="tk-t">'+(o.ap?'<span class="pill ap">Aprovação</span> ':'')+esc(o.desc)+'</div>'+
     (o.dev&&!o.done?'<div class="dev">Devolvido por '+esc(pName(o.dev.por))+': '+esc(o.dev.obs||'')+'</div>':'')+
