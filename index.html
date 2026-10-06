@@ -1000,7 +1000,7 @@ function openFrente(opt){
   let meta='';
   if(t){meta='Criada'+(t.criadoEm?' em '+fmtD(new Date(t.criadoEm)):'')+(t.criadoPor?' por '+pName(t.criadoPor):'');
     const c=k?(t.concluidas&&t.concluidas[k]):(t.concluidoEm?{em:t.concluidoEm,por:t.concluidoPor}:null);if(c)meta+='. Concluída em '+fmtD(new Date(c.em))+(c.por?' por '+pName(c.por):'')}
-  const title=isNew?'Nova demanda':'Frente'+(k?' de '+fmtD(parseYmd(k)):'');
+  const title=isNew?'Nova demanda':'Demanda'+(k?' de '+fmtD(parseYmd(k)):'');
   const ai=t&&t.resumoIA&&t.resumoIA.texto;
   const el=overlay('<div class="md" role="dialog" aria-modal="true" aria-labelledby="mdT"><form id="tf" novalidate style="display:contents"><div class="md-h"><h2 id="mdT">'+esc(title)+'</h2><span class="meta" id="m-sum"></span><button type="button" class="btn sm" data-x>Fechar</button></div><div class="md-s"><div class="md-b">'+
     (t?'<div class="full ai"><span class="lb">Resumo IA</span><span id="m-ai">'+(ai?esc(ai):'Ainda não gerado')+'</span><button type="button" class="btn sm" id="m-ai-btn">Atualizar resumo</button></div>':'')+
