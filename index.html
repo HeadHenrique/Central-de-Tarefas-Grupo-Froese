@@ -1584,7 +1584,7 @@ async function uploadMyAvatar(file){
   if(!S.me.id||!S.me.pessoa||!window.froeseBackend||!window.froeseBackend.client)return;
   try{
     toast('Atualizando sua foto...');
-    const blob=await prepAvatar(file);if(blob.size>2*1024*1024)throw new Error('Imagem muito grande');
+    const blob=await prepAvatar(file);if(blob.size>10*1024*1024)throw new Error('Imagem muito grande');
     const client=window.froeseBackend.client,path=S.me.id+'/avatar.jpg';
     const up=await client.storage.from('avatars').upload(path,blob,{contentType:'image/jpeg',cacheControl:'3600',upsert:true});
     if(up.error)throw up.error;
@@ -1594,7 +1594,7 @@ async function uploadMyAvatar(file){
     const rp=await client.rpc('update_my_avatar',{p_url:url});if(rp.error)throw rp.error;
     if(S.pessoas[S.me.pessoa])S.pessoas[S.me.pessoa].fotoUrl=url;
     renderWho();toast('Foto atualizada.');
-  }catch(e){console.error(e);toast('Não foi possível atualizar a foto. Use JPG, PNG ou WebP de até 2 MB.')}
+  }catch(e){console.error(e);toast('Não foi possível atualizar a foto. Use JPG, PNG ou WebP de até 10 MB.')}
 }
 
 function fillSelect(sel,opts,val){sel.innerHTML=opts.map(o=>'<option value="'+esc(o[0])+'">'+esc(o[1])+'</option>').join('');sel.value=opts.some(o=>o[0]===val)?val:opts[0][0];return sel.value}
