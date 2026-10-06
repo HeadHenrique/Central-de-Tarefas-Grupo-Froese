@@ -1399,7 +1399,7 @@ function renderWho(){
   $('#btnCfg').hidden=!S.me.owner;const cfgLabel=$('#btnCfg .setting-label');if(cfgLabel)cfgLabel.textContent=S.view==='config'?'Voltar ao painel':'Configurações';$('#btnResumo').hidden=!S.me.admin||S.view==='config';
   $('#btnNova').hidden=S.view==='config'||!canCreate();$('#btnLogout').hidden=!S.db;
 }
-const ATLAS_NOTIF={items:[],timer:null};
+const ATLAS_NOTIF={items:[],timer:null,audio:null,audioUnlocked:false,audioUnlocking:false};
 function notifSent(){
   try{return JSON.parse(localStorage.getItem('atlas-notified-'+(S.me.id||'anon'))||'{}')||{}}catch(e){return{}}
 }
@@ -1407,6 +1407,54 @@ function saveNotifSent(v){
   const lim=Date.now()-7*864e5;for(const k of Object.keys(v))if(+v[k]<lim)delete v[k];
   try{localStorage.setItem('atlas-notified-'+(S.me.id||'anon'),JSON.stringify(v))}catch(e){}
 }
+function notifSoundSent(){
+  try{return JSON.parse(localStorage.getItem('atlas-sound-notified-'+(S.me.id||'anon'))||'{}')||{}}catch(e){return{}}
+}
+function saveNotifSoundSent(v){
+  const lim=Date.now()-7*864e5;for(const k of Object.keys(v))if(+v[k]<lim)delete v[k];
+  try{localStorage.setItem('atlas-sound-notified-'+(S.me.id||'anon'),JSON.stringify(v))}catch(e){}
+}
+function getNotifAudio(){
+  if(!ATLAS_NOTIF.audio){
+    const a=new Audio('/notification-sound.mp3');
+    a.preload='auto';
+    a.volume=.78;
+    ATLAS_NOTIF.audio=a;
+  }
+  return ATLAS_NOTIF.audio;
+}
+async function unlockNotifAudio(){
+  if(ATLAS_NOTIF.audioUnlocked||ATLAS_NOTIF.audioUnlocking)return;
+  ATLAS_NOTIF.audioUnlocking=true;
+  const a=getNotifAudio(),vol=a.volume;
+  try{
+    a.volume=0;
+    a.currentTime=0;
+    await a.play();
+    a.pause();
+    a.currentTime=0;
+    a.volume=vol;
+    ATLAS_NOTIF.audioUnlocked=true;
+  }catch(e){
+    a.volume=vol;
+  }finally{
+    ATLAS_NOTIF.audioUnlocking=false;
+  }
+}
+async function playNotifSound(){
+  const a=getNotifAudio();
+  try{
+    a.pause();
+    a.currentTime=0;
+    a.volume=.78;
+    await a.play();
+    ATLAS_NOTIF.audioUnlocked=true;
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,unlockNotifAudio,{once:true,passive:true}));
 function taskNotifications(){
   if(!S.db||!S.loaded.t||!S.me.pessoa)return[];
   const now=new Date(),from=new Date(now.getTime()-72*3600e3),to=new Date(now.getTime()+36*3600e3),out=[];
@@ -1443,6 +1491,17 @@ function renderNotifications(){
       try{new Notification('Atlas • '+n.title,{body:n.body,tag:n.key,icon:''});sent[n.key]=Date.now()}catch(e){}
     }
     saveNotifSent(sent);
+  }
+
+  const soundSent=notifSoundSent();
+  const soundNew=items.filter(n=>!soundSent[n.key]);
+  if(soundNew.length){
+    playNotifSound().then(ok=>{
+      if(!ok)return;
+      const at=Date.now();
+      soundNew.forEach(n=>soundSent[n.key]=at);
+      saveNotifSoundSent(soundSent);
+    });
   }
 }
 function startNotificationLoop(){
