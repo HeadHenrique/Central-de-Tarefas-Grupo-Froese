@@ -1700,7 +1700,7 @@ function renderDemandas(){
       '<span class="fr-top"><span class="fr-t">'+esc(t.descricao)+'</span>'+(e.late?'<span class="pill st-atrasada">Atrasada</span>':'')+(e.parada?'<span class="pill st-parada">Parada há '+dias+' dias</span>':'')+(e.done?'<span class="pill st-concluida">Concluída</span>':'')+'</span>'+
       '<span class="fr-ai'+(ai?'':' none')+'">'+(ai?esc(ai):'Resumo ainda não gerado')+'</span>'+
       (t.ultimaDiretiva&&!e.done?'<span class="fr-dir">Diretiva de '+esc(pName(t.ultimaDiretiva.por))+': '+esc(t.ultimaDiretiva.texto)+'</span>':'')+
-      '<span class="fr-m"><span class="dot" style="background:'+esc(pColor(t.responsavel))+'"></span>'+esc(pName(t.responsavel))+'<span>prazo <span class="mono">'+fmtDM(e.prazo)+'</span></span>'+(isRec(t)?'<span>'+esc(recTxt(t))+'</span>':'')+(t.tipo?'<span>'+esc(t.tipo)+'</span>':'')+(valorDemanda(t)?'<span class="mono">'+fmtR(valorDemanda(t))+'</span>':'')+'</span>'+
+      '<span class="fr-m"><span class="dot" style="background:'+esc(pColor(t.responsavel))+'"></span>'+esc(pName(t.responsavel))+'<span>prazo <span class="mono">'+fmtDM(e.prazo)+'</span></span>'+(t.grupoId&&S.frentes[t.grupoId]?'<span class="frchip">'+esc(S.frentes[t.grupoId].nome)+'</span>':'')+(isRec(t)?'<span>'+esc(recTxt(t))+'</span>':'')+(t.tipo?'<span>'+esc(t.tipo)+'</span>':'')+(valorDemanda(t)?'<span class="mono">'+fmtR(valorDemanda(t))+'</span>':'')+'</span>'+
       '<span class="fr-p"><span class="prog"><i style="width:'+(p.n?p.d/p.n*100:0)+'%"></i></span><span class="mono">'+p.d+' de '+p.n+' tarefas</span></span></button>'}).join('');
 }
 $('#frl').addEventListener('click',e=>{const b=e.target.closest('.fr');if(!b)return;const en=$('#frl')._list[+b.dataset.i];if(en)openDemanda({t:en.t,k:en.k})});
@@ -1864,8 +1864,16 @@ function commitDem(o,start,dur){  const t=S.tarefas[o.t.id]||o.t;dur=Math.max(5,
   if(+start===+o.start&&dur===o.dur)return;
   const desc=(+start!==+o.start?'para '+DIAS[start.getDay()].toLowerCase()+' '+fmtDM(start)+' '+hm(start):'')+(+start!==+o.start&&dur!==o.dur?', ':'')+(dur!==o.dur?'duração '+dur+' min':'');
   if(!isRec(t)){
-    const old={inicio:t.inicio,tempo:t.tempo||null};
-    write(t.id,()=>tRef(t.id).update({inicio:toLocal(start),tempo:dur,ultimaAtividade:nowIso()})).then(()=>toast('Demanda alterada: '+desc+'.',{label:'Desfazer',fn:()=>write(t.id,()=>tRef(t.id).update(old)).then(()=>toast('Alteração desfeita.'))}));
+    const old={inicio:t.inicio,tempo:t.tempo||null,checklist:cloneCL(t.checklist||[])};
+    const oldStart=parseLocal(t.inicio),delta=oldStart?dayDiff(sod(oldStart),sod(start)):0;
+    let checklist=t.checklist||[];
+    if(delta){
+      checklist=cloneCL(checklist).map(it=>{
+        if(it.data){const d=parseYmd(it.data);it.data=ymd(addDays(d,delta))}
+        return it;
+      });
+    }
+    write(t.id,()=>tRef(t.id).update({inicio:toLocal(start),tempo:dur,checklist,ultimaAtividade:nowIso()})).then(()=>toast('Demanda alterada: '+desc+'.',{label:'Desfazer',fn:()=>write(t.id,()=>tRef(t.id).update(old)).then(()=>toast('Alteração desfeita.'))}));
     return;
   }
   const el=overlay('<div class="md sm" role="alertdialog" aria-modal="true"><div class="md-h"><h2>Demanda recorrente</h2></div><div class="msg"><p><b>'+esc(t.descricao)+'</b></p><p class="meta">Alteração: '+esc(desc)+'</p><p>Aplicar a mudança em quais eventos?</p>'+
@@ -2070,8 +2078,8 @@ function ctlNovoDoc(vinc){const cols=[0,1,2].map(i=>({id:rid(),nome:'Coluna '+co
 function ctlPode(c){if(S.me.admin||c.criadoPor===S.me.pessoa)return true;const t=c.frenteId&&S.tarefas[c.frenteId];return !!(t&&canSee(t))}
 function ctlVincTxt(c){if(!c.frenteId)return'Sem vínculo';const t=S.tarefas[c.frenteId];if(!t)return'Demanda excluída';
   const it=c.itemId&&(t.checklist||[]).find(x=>x.id===c.itemId);return t.descricao+(it?' / '+(it.descricao||'Tarefa sem descrição'):'')}
-const ctlLbl=id=>{const n=ctlDaTarefa(id).length;return n?'Controle'+(n>1?'s ('+n+')':''):'+ Controle'};
-const ctlDaTarefa=itemId=>Object.values(S.controles||{}).filter(c=>c.itemId===itemId);
+const ctlLbl=(id,demandaId)=>{const n=ctlDaTarefa(id,demandaId).length;return n?'Controle'+(n>1?'s ('+n+')':''):'+ Controle'};
+const ctlDaTarefa=(itemId,demandaId)=>Object.values(S.controles||{}).filter(c=>c.itemId===itemId&&(!demandaId||c.frenteId===demandaId));
 function numParse(s){if(typeof s==='number')return s;s=String(s||'').trim();if(!s)return null;let x=s.replace(/[^0-9,.\-]/g,'');
   if(x.includes(','))x=x.replace(/\./g,'').replace(',','.');else if((x.match(/\./g)||[]).length>1)x=x.replace(/\./g,'');const n=parseFloat(x);return isNaN(n)?null:n}
 function fmtVal(v,f){if(v==null||v==='')return'';
@@ -2095,7 +2103,7 @@ function listarControles(){
   el.querySelector('#ctlL').addEventListener('keydown',e=>{const tr=e.target.closest('tr[data-id]');if(tr&&e.key==='Enter')abrirControle(tr.dataset.id)});
 }
 function controlesDaTarefa(t,it){
-  const ls=ctlDaTarefa(it.id);
+  const ls=ctlDaTarefa(it.id,t.id);
   const livres=Object.values(S.controles||{}).filter(c=>!c.itemId&&ctlPode(c));
   const el=overlay2('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Controles da tarefa</h2><span class="meta">'+esc(it.descricao||'')+'</span><span class="grow"></span><button class="btn sm" data-x2 type="button">Fechar</button></div><div class="md-s"><div class="plist">'+
     (ls.length?ls.map(c=>'<button type="button" class="ctlit" data-id="'+esc(c.id)+'"><b>'+esc(c.nome)+'</b><span class="meta mono">'+(c.rows||[]).length+' x '+(c.cols||[]).length+'</span></button>').join(''):'<div class="meta">Nenhum controle vinculado.</div>')+
@@ -2446,7 +2454,7 @@ function openDemanda(opt){
           :(cols.tempo?'<label class="sm-f"><input type="number" min="5" step="5" data-k="duracao" value="'+(it.duracao||5)+'" aria-label="Duração em minutos" title="Tempo em minutos">min</label>':'')+
            (cols.valor?'<input type="number" min="0" step="0.01" data-k="valor" value="'+(it.valor==null?'':it.valor)+'" placeholder="Valor R$" aria-label="Valor">':'')+
            '<select data-k="responsavel" aria-label="Responsável da tarefa">'+pOpts(it.responsavel,'Responsável')+'</select>')+
-        (savedItem(it.id)?'<button type="button" class="lnk" data-more>Registros</button><button type="button" class="lnk" data-ctl="'+esc(it.id)+'">'+ctlLbl(it.id)+'</button>':'')+'<button type="button" class="lnk" data-up '+(i?'':'disabled')+'>Subir</button><button type="button" class="lnk danger" data-rm '+(cl.length>1?'':'disabled')+'>Excluir</button></div>'+
+        (savedItem(it.id)?'<button type="button" class="lnk" data-more>Registros</button><button type="button" class="lnk" data-ctl="'+esc(it.id)+'">'+ctlLbl(it.id,t&&t.id)+'</button>':'')+'<button type="button" class="lnk" data-up '+(i?'':'disabled')+'>Subir</button><button type="button" class="lnk danger" data-rm '+(cl.length>1?'':'disabled')+'>Excluir</button></div>'+
         (dv&&!chk?'<div class="clr-r dev">Devolvido por '+esc(pName(dv.por))+': '+esc(dv.obs||'')+'</div>':'')+
         (savedItem(it.id)?'<div class="clr-x"'+(opt.hl===it.id?'':' hidden')+'><div class="clr-r"><input type="text" data-reg placeholder="Registrar atividade nesta etapa" aria-label="Registro de atividade"><button type="button" class="btn sm" data-regbtn>Registrar</button></div><div class="clr-r anx" data-anx="'+esc(it.id)+'"></div></div>':(t?'<div class="clr-r meta">Salve a demanda para registrar atividades e anexar arquivos nesta etapa.</div>':''))+'</div>'}).join('');
     paintAnx();
@@ -2499,7 +2507,7 @@ function openDemanda(opt){
     else if(key==='offset')it.offset=e.target.value===''?null:Math.max(0,Math.round(+e.target.value||0));
     else if(key==='duracao')it.duracao=Math.max(5,Math.round(+e.target.value||5));
     else{it[key]=e.target.value||null;if(key==='descricao')sum()}};
-  {const up=()=>{if(!document.body.contains(clBox)){S.ctlSubs.delete(up);return}clBox.querySelectorAll('[data-ctl]').forEach(b=>b.textContent=ctlLbl(b.dataset.ctl))};S.ctlSubs.add(up)}
+  {const up=()=>{if(!document.body.contains(clBox)){S.ctlSubs.delete(up);return}clBox.querySelectorAll('[data-ctl]').forEach(b=>b.textContent=ctlLbl(b.dataset.ctl,t&&t.id))};S.ctlSubs.add(up)}
   clBox.addEventListener('input',onCL);clBox.addEventListener('change',onCL);
   clBox.addEventListener('change',e=>{if(!e.target.matches('[data-upf]'))return;const row=e.target.closest('.clr'),f=e.target.files&&e.target.files[0];if(!f)return;uploadAnexo(S.tarefas[t.id]||t,cl[+row.dataset.i].id,f);e.target.value=''});
   clBox.addEventListener('click',e=>{const row=e.target.closest('.clr');if(!row)return;const i=+row.dataset.i;
@@ -2700,6 +2708,7 @@ function drawMods(){
   const box=$('#mods');if(!box)return;
   const cO=(sel,ph)=>'<option value="">'+ph+'</option>'+(S.cfg.cargos||[]).map(c=>'<option value="'+esc(c.id)+'" '+(c.id===sel?'selected':'')+'>'+esc(c.nome)+'</option>').join('');
   box.innerHTML=MODS.length?MODS.map((m,mi)=>'<div class="mod" data-m="'+mi+'"><div class="mod-h"><input type="text" data-mn value="'+esc(m.nome)+'" aria-label="Nome do modelo"><button type="button" class="btn sm danger" data-mrm>Excluir modelo</button></div>'+
+    '<div class="mi"><span class="meta">Colunas visíveis:</span>'+[['hora','Horário'],['tempo','Tempo'],['valor','Valor']].map(c=>'<label class="chk"><input type="checkbox" data-mc="'+c[0]+'" '+((m.colunas||{})[c[0]]?'checked':'')+'>'+c[1]+'</label>').join('')+'</div>'+
     m.itens.map((x,ii)=>{const ap=x.tipo==='aprovacao';
       return '<div class="mi" data-ii="'+ii+'"><span class="cln mono">'+(ii+1)+'</span><select data-mk="tipo" aria-label="Tipo da etapa"><option value="execucao" '+(ap?'':'selected')+'>Execução</option><option value="aprovacao" '+(ap?'selected':'')+'>Aprovação</option></select>'+
       '<input type="text" data-mk="descricao" value="'+esc(x.descricao||'')+'" placeholder="Etapa" aria-label="Etapa do modelo">'+
@@ -2710,6 +2719,7 @@ function drawMods(){
     '<div><button type="button" class="btn sm" data-iadd>Adicionar etapa ao modelo</button></div></div>').join(''):'<div class="meta">Nenhum modelo cadastrado.</div>';
   const upd=(e,redraw)=>{const md=e.target.closest('.mod');if(!md)return;const m=MODS[+md.dataset.m];
     if(e.target.matches('[data-mn]')){m.nome=e.target.value;return}
+    if(e.target.dataset.mc){m.colunas=Object.assign({},m.colunas||{});m.colunas[e.target.dataset.mc]=e.target.checked;return}
     const row=e.target.closest('[data-ii]');if(!row)return;const x=m.itens[+row.dataset.ii];
     if(e.target.dataset.ak){const al=x.alcadas[+row.dataset.ai];if(al)al[e.target.dataset.ak]=e.target.value;return}
     if(e.target.dataset.mk){x[e.target.dataset.mk]=e.target.value;if(redraw&&e.target.dataset.mk==='tipo'){if(!x.alcadas)x.alcadas=[];drawMods()}}};
