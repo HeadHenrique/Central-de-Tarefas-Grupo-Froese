@@ -262,17 +262,154 @@
     if (document.getElementById('authGate')) return;
     const style = document.createElement('style');
     style.textContent = `
-      .auth-gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f3f4f7;font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;color:#151a24}
-      .auth-card{width:min(420px,100%);background:#fff;border:1px solid #d9dde5;border-radius:16px;padding:28px;box-shadow:0 20px 50px rgba(20,28,45,.12)}
-      .auth-brand{font-size:13px;color:#6b7280;margin-bottom:4px}.auth-card h1{font-size:24px;margin:0 0 6px}.auth-card p{color:#667085;margin:0 0 22px;line-height:1.5}
-      .auth-field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}.auth-field label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#667085}
-      .auth-field input{border:1px solid #d0d5dd;border-radius:9px;padding:11px 12px;font:inherit;outline:none}.auth-field input:focus{border-color:#5f5587;box-shadow:0 0 0 3px rgba(95,85,135,.12)}
-      .auth-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.auth-btn{border:1px solid #d0d5dd;background:#fff;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer}
-      .auth-btn.primary{background:#5f5587;border-color:#5f5587;color:#fff}.auth-btn:disabled{opacity:.55;cursor:not-allowed}.auth-msg{min-height:20px;margin-top:12px;font-size:13px;color:#667085}
-      .auth-msg.err{color:#b42318}.auth-msg.ok{color:#067647}.auth-denied{text-align:center}.auth-denied strong{display:block;font-size:18px;margin-bottom:8px}
-      @media (prefers-color-scheme:dark){.auth-gate{background:#0e1218;color:#e6e9ef}.auth-card{background:#161b23;border-color:#2a313d}.auth-card p,.auth-brand,.auth-msg,.auth-field label{color:#98a1b3}.auth-field input,.auth-btn{background:#1d232d;border-color:#344054;color:#e6e9ef}}
-    `;
-    document.head.appendChild(style);
+      .auth-gate{
+        min-height:100vh;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:24px;
+        background:
+          radial-gradient(circle at 8% 8%,rgba(145,93,235,.14),transparent 28%),
+          radial-gradient(circle at 92% 92%,rgba(124,76,224,.10),transparent 30%),
+          linear-gradient(180deg,#fbfaff 0%,#f4f0ff 100%);
+        font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+        color:#18143f;
+      }
+      .auth-card{
+        width:min(382px,100%);
+        background:#fff;
+        border:1px solid #e7e1f2;
+        border-radius:16px;
+        padding:24px;
+        box-shadow:0 18px 46px rgba(69,45,121,.12),0 4px 12px rgba(69,45,121,.05);
+      }
+      .auth-brand{
+        font-size:12px;
+        font-weight:700;
+        letter-spacing:.08em;
+        text-transform:uppercase;
+        color:#7c4ce0;
+        text-align:center;
+        margin-bottom:6px;
+      }
+      .auth-card h1.form-title{
+        margin:0 0 18px;
+        font-size:22px;
+        line-height:1.35;
+        font-weight:800;
+        text-align:center;
+        color:#18143f;
+        letter-spacing:-.025em;
+      }
+      .auth-form{display:block}
+      .input-container{
+        position:relative;
+        margin:10px 0;
+      }
+      .input-container input{
+        width:100%;
+        min-height:48px;
+        outline:none;
+        border:1px solid #e5e0ef;
+        background:#fff;
+        padding:12px 44px 12px 14px;
+        font:inherit;
+        font-size:14px;
+        line-height:1.25rem;
+        color:#241b50;
+        border-radius:10px;
+        box-shadow:0 1px 2px rgba(32,24,76,.04);
+        transition:border-color .2s ease,box-shadow .2s ease;
+        box-sizing:border-box;
+      }
+      .input-container input::placeholder{color:#a19bb5}
+      .input-container input:focus{
+        border-color:#9b79e4;
+        box-shadow:0 0 0 3px rgba(124,76,224,.10),0 1px 2px rgba(32,24,76,.04);
+      }
+      .input-container span{
+        display:grid;
+        position:absolute;
+        top:0;
+        bottom:0;
+        right:0;
+        width:42px;
+        place-content:center;
+        pointer-events:none;
+      }
+      .input-container span svg{
+        color:#9b92b4;
+        width:17px;
+        height:17px;
+      }
+      .auth-submit{
+        display:block;
+        width:100%;
+        min-height:46px;
+        margin:14px 0 0;
+        border:0;
+        border-radius:10px;
+        background:linear-gradient(135deg,#8e5ce8,#7240d4);
+        color:#fff;
+        font-size:13px;
+        line-height:1.25rem;
+        font-weight:800;
+        letter-spacing:.035em;
+        text-transform:uppercase;
+        cursor:pointer;
+        box-shadow:0 8px 18px rgba(124,76,224,.20);
+        transition:transform .16s ease,box-shadow .2s ease,background .2s ease;
+      }
+      .auth-submit:hover{
+        background:linear-gradient(135deg,#8250de,#6431c4);
+        box-shadow:0 10px 22px rgba(124,76,224,.26);
+        transform:translateY(-1px);
+      }
+      .auth-submit:active{transform:translateY(0) scale(.99)}
+      .auth-submit:disabled,.signup-action:disabled{opacity:.55;cursor:not-allowed}
+      .signup-link{
+        margin:16px 0 0;
+        color:#78718f;
+        font-size:13px;
+        line-height:1.35;
+        text-align:center;
+      }
+      .signup-action{
+        all:unset;
+        color:#7440d8;
+        font-weight:700;
+        text-decoration:underline;
+        text-underline-offset:2px;
+        cursor:pointer;
+      }
+      .signup-action:hover{color:#5e2dbd}
+      .auth-msg{
+        min-height:20px;
+        margin-top:12px;
+        font-size:12.5px;
+        text-align:center;
+        color:#77718f;
+        line-height:1.4;
+      }
+      .auth-msg.err{color:#c23d54}
+      .auth-msg.ok{color:#16844b}
+      .auth-denied{text-align:center}
+      .auth-denied strong{display:block;font-size:18px;margin-bottom:8px;color:#18143f}
+      .auth-denied p{color:#77718f;line-height:1.5}
+      .auth-btn{
+        border:1px solid #dfd7ed;
+        background:#fff;
+        color:#33295d;
+        border-radius:9px;
+        padding:9px 13px;
+        font-weight:700;
+        cursor:pointer;
+      }
+      @media(max-width:520px){
+        .auth-gate{padding:16px}
+        .auth-card{padding:20px;border-radius:14px}
+      }
+    `;    document.head.appendChild(style);
 
     const gate = document.createElement('div');
     gate.id = 'authGate';
@@ -280,16 +417,28 @@
     gate.hidden = true;
     gate.innerHTML = `
       <div class="auth-card">
-        <div class="auth-brand">Central de Tarefas</div>
-        <h1>Atlas</h1>
-        <p>Entre com seu e-mail e senha. No primeiro acesso, crie sua conta usando o mesmo e-mail cadastrado pela administração. Não há confirmação por e-mail.</p>
-        <form id="authForm">
-          <div class="auth-field"><label for="authEmail">E-mail</label><input id="authEmail" type="email" autocomplete="email" required></div>
-          <div class="auth-field"><label for="authPass">Senha</label><input id="authPass" type="password" autocomplete="current-password" minlength="6" required></div>
-          <div class="auth-actions">
-            <button class="auth-btn primary" id="authLogin" type="submit">Entrar</button>
-            <button class="auth-btn" id="authSignup" type="button">Criar primeiro acesso</button>
+        <div class="auth-brand">Atlas</div>
+        <form class="auth-form" id="authForm">
+          <p class="form-title">Acesse sua conta</p>
+          <div class="input-container">
+            <input id="authEmail" placeholder="Digite seu e-mail" type="email" autocomplete="email" required>
+            <span aria-hidden="true">
+              <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+              </svg>
+            </span>
           </div>
+          <div class="input-container">
+            <input id="authPass" placeholder="Digite sua senha" type="password" autocomplete="current-password" minlength="6" required>
+            <span aria-hidden="true">
+              <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+                <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+              </svg>
+            </span>
+          </div>
+          <button class="auth-submit" id="authLogin" type="submit">Entrar</button>
+          <p class="signup-link">Primeiro acesso? <button class="signup-action" id="authSignup" type="button">Criar acesso</button></p>
           <div class="auth-msg" id="authMsg"></div>
         </form>
       </div>`;
