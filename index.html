@@ -987,13 +987,13 @@ let toastT;
 function toast(m){let t=$('.toast');if(!t){t=document.createElement('div');t.className='toast';t.setAttribute('role','status');document.body.appendChild(t)}t.textContent=m;clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),4200)}
 
 /* ---------- pop-up da frente ---------- */
-function newItem(){return{id:rid(),descricao:'',data:null,offset:null,hora:null,duracao:30,responsavel:null,feito:false,feitos:{}}}
+function newItem(resp=null){return{id:rid(),descricao:'',data:null,offset:0,hora:null,duracao:30,responsavel:resp||null,feito:false,feitos:{}}}
 function openFrente(opt){
   if(opt.nova&&!canCreate()){toast('Seu perfil não permite criar frentes.');return}
   const t=opt.t||null,k=opt.k||null,isNew=!t,C=S.cfg;
   const v=opt.dados||(t?{descricao:t.descricao,tipo:t.tipo||'',responsavel:t.responsavel||'',prioridade:t.prioridade||2,start:parseLocal(t.inicio),recorrencia:t.recorrencia||{freq:'none'},visivelPara:t.visivelPara||[],checklist:t.checklist,modeloId:t.modeloId||''}
     :{descricao:'',tipo:C.obrig.tipo?'':(C.tipos[0]||''),responsavel:'',prioridade:2,start:opt.start||new Date(),recorrencia:{freq:'none'},visivelPara:[],checklist:[],modeloId:''});
-  const cl=cloneCL(v.checklist);if(!cl.length)cl.push(newItem());
+  const cl=cloneCL(v.checklist);if(!cl.length)cl.push(newItem(v.responsavel));
   const r=Object.assign({freq:'none'},v.recorrencia||{});if(r.freq==='interval')r.freq='daily';
   const tipos=C.tipos.includes(v.tipo)||!v.tipo?C.tipos:C.tipos.concat(v.tipo);
   const pOpts=(sel,ph)=>'<option value="">'+ph+'</option>'+activeP().map(p=>'<option value="'+esc(p.id)+'" '+(p.id===sel?'selected':'')+'>'+esc(p.nome)+'</option>').join('');
@@ -1016,7 +1016,7 @@ function openFrente(opt){
     '<div class="fld half" id="w-dias"><span class="lb">Dias da semana</span><div class="wdays">'+[1,2,3,4,5,6,0].map(i=>'<label><input type="checkbox" value="'+i+'" '+((r.dias&&r.dias.length?r.dias:[(v.start||new Date()).getDay()]).includes(i)?'checked':'')+'>'+DIAS[i]+'</label>').join('')+'</div></div>'+
     '<div class="meta full" id="w-prox"></div>'+
     '<div class="clsec"><div class="clsec-h"><b>Checklist de tarefas</b><select id="m-modelo" aria-label="Modelo de checklist"><option value="">Modelo: Personalizado</option>'+C.modelos.map(m=>'<option value="'+esc(m.id)+'" '+(m.id===v.modeloId?'selected':'')+'>Modelo: '+esc(m.nome)+'</option>').join('')+'</select><span class="meta" id="m-clnote"></span></div>'+
-      '<div class="cl" id="m-cl"></div><div class="row"><button type="button" class="btn sm" id="m-cl-add">Adicionar tarefa</button><span class="meta">Cada tarefa precisa de descrição, data e responsável'+(C.obrig.horaTarefa?' e horário':'')+'. A frente é concluída quando todas estiverem feitas.</span></div></div>'+
+      '<div class="cl" id="m-cl"></div><div class="row"><button type="button" class="btn sm" id="m-cl-add">Adicionar tarefa</button><span class="meta">Tarefas de execução usam automaticamente o responsável da frente. Em recorrências, acompanham a data de cada repetição'+(C.obrig.horaTarefa?' e precisam de horário':'')+'.</span></div></div>'+
     '<div class="fld full"><span class="lb">Também podem ver</span><div class="vis" id="m-vis">'+activeP().map(p=>'<label><input type="checkbox" value="'+esc(p.id)+'" '+(v.visivelPara.includes(p.id)?'checked':'')+'><span class="dot" style="background:'+esc(p.cor)+'"></span>'+esc(p.nome)+'</label>').join('')+'</div></div>'+
     (t?'<div class="fld full"><span class="lb">Histórico de registros</span><div class="hist" id="m-hist"><div class="meta">Carregando...</div></div></div>':'')+
     (meta?'<div class="full meta">'+esc(meta)+'</div>':'')+'<div class="full err" id="m-err" hidden></div>'+
@@ -1034,10 +1034,11 @@ function openFrente(opt){
     b.innerHTML='<span class="meta">Anexos:</span>'+l.map(a=>'<button type="button" class="a" data-anxid="'+esc(a.id)+'" title="'+esc(a.nome+' ('+Math.round(a.tam/1024)+' KB)')+'">'+esc(a.nome)+'</button>').join('')+'<label class="up">Adicionar anexo<input type="file" data-upf></label>'})}
   function sum(){const kk=ctxK();const valid=cl.filter(it=>(it.descricao||'').trim());const d=valid.filter(it=>recOn()?(kk&&it.feitos&&it.feitos[kk]):it.feito).length;
     const vt=valorFrente({checklist:cl});$m('#m-sum').textContent=(valid.length?d+' de '+valid.length+' etapas concluídas':'')+(vt?' | Valor '+fmtR(vt):'');
-    $m('#m-clnote').textContent=recOn()?(k?'Marcações valem para '+fmtDM(parseYmd(k)):'Datas relativas: Dia +0 é o próprio dia de cada repetição'):''}
+    $m('#m-clnote').textContent=recOn()?(k?'Marcações valem para '+fmtDM(parseYmd(k)):'Todas as tarefas acompanham a data de cada repetição'):''}
   function drawCL(){
     const box=$m('#m-cl'),rec=recOn(),st=curStart(),kk=ctxK();
-    cl.forEach(it=>{if(rec&&it.offset==null&&it.data)it.offset=Math.max(0,dayDiff(st,parseYmd(it.data)));if(!rec&&!it.data&&it.offset!=null)it.data=ymd(addDays(st,it.offset))});
+    const frontResp=$m('#m-resp').value||null;
+    cl.forEach(it=>{if(rec)it.offset=0;else if(!it.data&&it.offset!=null)it.data=ymd(addDays(st,it.offset));if(!isAp(it))it.responsavel=frontResp});
     const tmpT={checklist:cl},tt=t?(S.tarefas[t.id]||t):null;
     const cOpts=sel=>'<option value="">Cargo aprovador</option>'+(C.cargos||[]).map(c=>'<option value="'+esc(c.id)+'" '+(c.id===sel?'selected':'')+'>'+esc(c.nome)+'</option>').join('');
     box.innerHTML=cl.map((it,i)=>{
@@ -1050,12 +1051,12 @@ function openFrente(opt){
         '<span class="cln mono">'+(i+1)+'</span>'+
         '<select data-k="tipo" aria-label="Tipo da etapa"><option value="execucao" '+(ap?'':'selected')+'>Execução</option><option value="aprovacao" '+(ap?'selected':'')+'>Aprovação</option></select>'+
         '<input type="text" data-k="descricao" value="'+esc(it.descricao||'')+'" placeholder="'+(ap?'Descrição da aprovação':'Descrição da tarefa')+'" aria-label="Descrição">'+
-        (rec?'<label class="sm-f">Dia +<input type="number" min="0" data-k="offset" value="'+(it.offset==null?'':it.offset)+'" aria-label="Dias após a data da frente"></label>':'<input type="date" data-k="data" value="'+esc(it.data||'')+'" aria-label="Data">')+
+        (rec?'':'<input type="date" data-k="data" value="'+esc(it.data||'')+'" aria-label="Data">')+
         '<input type="time" step="900" data-k="hora" value="'+esc(it.hora||'')+'" aria-label="Horário" title="Horário">'+
         (ap?'<select data-k="cargoId" aria-label="Cargo aprovador">'+cOpts(it.cargoId)+'</select><span class="apinfo">Aprova: '+(apP?esc(pName(apP)):'cargo sem titular')+(cg&&cg!==it.cargoId?' (alçada: '+esc(cargoNome(cg))+')':'')+'</span>'+(dec?'<button type="button" class="btn sm pri" data-dec>Decidir</button>':'')
           :'<label class="sm-f"><input type="number" min="5" step="5" data-k="duracao" value="'+(it.duracao||30)+'" aria-label="Duração em minutos">min</label>'+
            '<input type="number" min="0" step="0.01" data-k="valor" value="'+(it.valor==null?'':it.valor)+'" placeholder="Valor R$" aria-label="Valor" style="width:110px">'+
-           '<select data-k="responsavel" aria-label="Responsável da tarefa">'+pOpts(it.responsavel,'Responsável')+'</select>')+
+           '<select aria-label="Responsável da tarefa" title="Definido automaticamente pelo responsável da frente" disabled>'+pOpts(frontResp,'Responsável')+'</select>')+
         '<button type="button" class="btn sm" data-up '+(i?'':'disabled')+'>Subir</button><button type="button" class="btn sm danger" data-rm '+(cl.length>1?'':'disabled')+'>Remover</button></div>'+
         (dv&&!chk?'<div class="clr-r dev">Devolvido por '+esc(pName(dv.por))+': '+esc(dv.obs||'')+'</div>':'')+
         (savedItem(it.id)?'<div class="clr-r"><input type="text" data-reg placeholder="Registrar atividade nesta etapa" aria-label="Registro de atividade"><button type="button" class="btn sm" data-regbtn>Registrar</button></div><div class="clr-r anx" data-anx="'+esc(it.id)+'"></div>':(t?'<div class="clr-r meta">Salve a frente para registrar atividades e anexar arquivos nesta etapa.</div>':''))+'</div>'}).join('');
@@ -1072,13 +1073,14 @@ function openFrente(opt){
     drawCL();
   };
   ['#m-rec','#m-int','#m-ate','#m-data','#m-hora'].forEach(s=>$m(s).addEventListener('change',syncRec));
+  $m('#m-resp').addEventListener('change',drawCL);
   $m('#m-int').addEventListener('input',syncRec);$m('#w-dias').addEventListener('change',syncRec);
   syncRec();
   $m('#m-modelo').addEventListener('change',e=>{
     const m=C.modelos.find(x=>x.id===e.target.value);if(!m)return;
     const rec=recOn(),st=curStart();
     for(let i=cl.length-1;i>=0;i--)if(!(cl[i].descricao||'').trim())cl.splice(i,1);
-    m.itens.forEach(x=>{const it=newItem();it.descricao=x.descricao;it.tipo=x.tipo||'execucao';it.cargoId=x.cargoId||null;it.alcadas=clone(x.alcadas||[]);if(!isAp(it)&&x.cargoId)it.responsavel=aprovadorCargo(x.cargoId);if(x.dias!=null&&x.dias!==''){if(rec)it.offset=+x.dias;else if($m('#m-data').value)it.data=ymd(addDays(st,+x.dias))}cl.push(it)});
+    m.itens.forEach(x=>{const it=newItem($m('#m-resp').value);it.descricao=x.descricao;it.tipo=x.tipo||'execucao';it.cargoId=x.cargoId||null;it.alcadas=clone(x.alcadas||[]);if(x.dias!=null&&x.dias!==''&&!rec&&$m('#m-data').value)it.data=ymd(addDays(st,+x.dias));if(rec)it.offset=0;cl.push(it)});
     if(!cl.length)cl.push(newItem());drawCL();toast('Modelo aplicado. Confira responsáveis, datas e valores de cada etapa.');
   });
   const clBox=$m('#m-cl');
@@ -1094,9 +1096,8 @@ function openFrente(opt){
       const mark=val?{por:S.me.pessoa||null,em:nowIso()}:null;
       if(recOn()&&kk)it.feitos[kk]=mark;else{it.feito=val;it.feitoEm=mark&&mark.em;it.feitoPor=mark&&mark.por}
       row.classList.toggle('ok',val);sum();
-    }else if(key==='tipo'||key==='cargoId'){if(e.type!=='change')return;it[key]=e.target.value||null;if(key==='tipo'&&isAp(it)&&!it.cargoId)it.cargoId=null;drawCL()}
+    }else if(key==='tipo'||key==='cargoId'){if(e.type!=='change')return;it[key]=e.target.value||null;if(key==='tipo'&&isAp(it)&&!it.cargoId)it.cargoId=null;if(key==='tipo'&&!isAp(it))it.responsavel=$m('#m-resp').value||null;drawCL()}
     else if(key==='valor'){it.valor=e.target.value===''?null:Math.max(0,+e.target.value||0);if(e.type==='change')drawCL()}
-    else if(key==='offset')it.offset=e.target.value===''?null:Math.max(0,Math.round(+e.target.value||0));
     else if(key==='duracao')it.duracao=Math.max(5,Math.round(+e.target.value||30));
     else{it[key]=e.target.value||null;if(key==='descricao')sum()}};
   clBox.addEventListener('input',onCL);clBox.addEventListener('change',onCL);
@@ -1109,7 +1110,7 @@ function openFrente(opt){
     else if(e.target.matches('[data-regbtn]')){const inp=row.querySelector('[data-reg]'),txt=inp.value.trim();if(!txt){inp.focus();return}
       addRegistro(S.tarefas[t.id]||t,cl[i].id,txt).then(()=>toast('Registro salvo.'));inp.value='';inp.focus()}});
   clBox.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('[data-reg]')){e.preventDefault();e.target.closest('.clr').querySelector('[data-regbtn]').click()}});
-  $m('#m-cl-add').addEventListener('click',()=>{cl.push(newItem());drawCL();const ins=clBox.querySelectorAll('input[data-k=descricao]');ins[ins.length-1].focus()});
+  $m('#m-cl-add').addEventListener('click',()=>{cl.push(newItem($m('#m-resp').value));drawCL();const ins=clBox.querySelectorAll('input[data-k=descricao]');ins[ins.length-1].focus()});
   const hlRow=opt.hl&&clBox.querySelector('.clr.hl');if(hlRow)hlRow.scrollIntoView({block:'nearest'});else if(isNew)$m('#m-desc').focus();
   if(t){
     const hist=$m('#m-hist');
@@ -1126,8 +1127,8 @@ function openFrente(opt){
     const start=$m('#m-data').value?curStart():null,rec=readRec(),resp=$m('#m-resp').value,isR=rec.freq!=='none';
     return{descricao:$m('#m-desc').value.trim(),tipo:$m('#m-tipo').value,responsavel:resp,prioridade:+(el.querySelector('input[name=m-pr]:checked')||{value:2}).value,start,recorrencia:rec,
       modeloId:$m('#m-modelo').value||null,visivelPara:[...el.querySelectorAll('#m-vis input:checked')].map(x=>x.value).filter(x=>x!==resp),
-      checklist:cl.filter(it=>(it.descricao||'').trim()).map(it=>{const x=Object.assign({},it,{descricao:it.descricao.trim(),duracao:it.duracao||30,tipo:it.tipo||'execucao'});if(isAp(x))x.responsavel=aprovadorCargo(cargoDe(x,{checklist:cl}))||null;
-        if(isR){x.data=null}else{x.offset=null}return x})};
+      checklist:cl.filter(it=>(it.descricao||'').trim()).map(it=>{const x=Object.assign({},it,{descricao:it.descricao.trim(),duracao:it.duracao||30,tipo:it.tipo||'execucao'});if(isAp(x))x.responsavel=aprovadorCargo(cargoDe(x,{checklist:cl}))||null;else x.responsavel=resp||null;
+        if(isR){x.data=null;x.offset=0}else{x.offset=null}return x})};
   };
   const err=(m,i)=>{const e=$m('#m-err');e.textContent=m;e.hidden=false;e.scrollIntoView({block:'nearest'});if(i!=null){const row=clBox.querySelector('.clr[data-i="'+i+'"]');if(row){row.classList.add('bad');row.scrollIntoView({block:'nearest'})}}};
   $m('#tf').addEventListener('submit',e=>{
@@ -1139,7 +1140,7 @@ function openFrente(opt){
     if(d.recorrencia.freq==='weekly'&&!d.recorrencia.dias.length)return err('Escolha pelo menos um dia da semana.');
     if(!d.checklist.length)return err('Cadastre pelo menos uma tarefa no checklist.');
     for(let i=0;i<cl.length;i++){const it=cl[i];if(!(it.descricao||'').trim())continue;
-      if(isR?(it.offset==null||it.offset===''):!it.data)return err('Informe a data da tarefa '+(i+1)+' ('+it.descricao+').',i);
+      if(!isR&&!it.data)return err('Informe a data da tarefa '+(i+1)+' ('+it.descricao+').',i);
       if(isAp(it)){if(!it.cargoId)return err('Escolha o cargo aprovador da etapa '+(i+1)+' ('+it.descricao+').',i);if(!aprovadorCargo(cargoDe(it,{checklist:cl})))return err('O cargo '+cargoNome(cargoDe(it,{checklist:cl}))+' não tem titular. Vincule um usuário em Configurações.',i)}
       else if(!it.responsavel)return err('Informe o responsável da tarefa '+(i+1)+' ('+it.descricao+').',i);
       if(C.obrig.horaTarefa&&!it.hora)return err('Informe o horário da tarefa '+(i+1)+' ('+it.descricao+').',i)}
