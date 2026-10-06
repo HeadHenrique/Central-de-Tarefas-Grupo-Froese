@@ -550,6 +550,68 @@
     transform:translate3d(0,0,0)!important;
   }
 }
+</style><style id="atlas-mobile-nav-interaction-fix">
+@media(max-width:700px){
+  /* O drawer vive dentro do header: o header precisa ficar acima do backdrop. */
+  .top.atlas-header{
+    z-index:106!important;
+    background:#fff!important;
+  }
+  .mobile-nav-backdrop{
+    z-index:105!important;
+    background:rgba(26,17,47,.10)!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  .atlas-nav{
+    z-index:110!important;
+    background:#fff!important;
+    background-color:#fff!important;
+    opacity:1!important;
+    isolation:isolate!important;
+  }
+  .atlas-nav::before{
+    background:#fff!important;
+    opacity:1!important;
+  }
+
+  /* Nova demanda volta para o topo do app. */
+  .atlas-header .new-demand{
+    position:static!important;
+    inset:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    z-index:auto!important;
+    min-height:38px!important;
+    padding:0 12px!important;
+    border:1.5px solid #7c4ce0!important;
+    border-radius:10px!important;
+    background:#fff!important;
+    color:#6f3bd0!important;
+    box-shadow:0 4px 12px rgba(124,76,224,.10)!important;
+    font-size:11.5px!important;
+  }
+  .atlas-header .new-demand::before,
+  .atlas-header .new-demand::after{display:none!important}
+  .atlas-header .new-demand:hover,
+  .atlas-header .new-demand:active{
+    background:#f7f3ff!important;
+    color:#6f3bd0!important;
+    transform:none!important;
+  }
+
+  /* Modais acionados pelo menu precisam ficar acima do header/drawer. */
+  .ov{z-index:140!important}
+  .ov2{z-index:150!important}
+
+  /* Popovers internos do menu lateral. */
+  .mobile-nav-account .notif-pop,
+  .mobile-nav-account .profile-menu{z-index:125!important}
+
+  /* O backdrop nunca deve capturar cliques dentro do drawer. */
+  body.mobile-nav-open .atlas-nav{pointer-events:auto!important}
+  body.mobile-nav-open .mobile-nav-backdrop{pointer-events:auto!important}
+}
 </style></head><body>
 <title>Atlas — Central de Tarefas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3422,7 +3484,7 @@ function openResumoDia(){
   el.addEventListener('click',e=>{const b=e.target.closest('[data-copy]');if(!b)return;const m=msgDia(S.pessoas[b.dataset.copy]).s;
     try{navigator.clipboard.writeText(m).then(()=>toast('Texto copiado.'),()=>toast('Não foi possível copiar.'))}catch(x){toast('Não foi possível copiar.')}});
 }
-$('#btnResumo').onclick=openResumoDia;
+$('#btnResumo').onclick=()=>{if(mobileMode())closeMobileNav();openResumoDia()};
 
 /* ---------- configurações (tela própria) ---------- */
 async function hashCode(pid,code){const norm=String(code).toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -3643,8 +3705,9 @@ $('#btnMobileOverview').onclick=()=>openMobileWork('overview');
 $('#btnMobileTasks').onclick=()=>openMobileWork('tasks');
 $('.atlas-nav').addEventListener('click',e=>{
   if(!mobileMode())return;
-  const b=e.target.closest('button');if(!b||b.closest('#mobileNavAccount')||b.id==='btnMobileMenuClose')return;
-  if(b.classList.contains('atlas-nav-btn'))setTimeout(closeMobileNav,0);
+  const b=e.target.closest('button');
+  if(!b||b.closest('#mobileNavAccount')||b.id==='btnMobileMenuClose')return;
+  /* cada ação do menu fecha o drawer no próprio handler; sem timeout concorrente */
 });
 MOBILE_CAL.addEventListener&&MOBILE_CAL.addEventListener('change',()=>{syncMobileLayout();if(S.db&&S.loaded.t&&S.view==='main')renderCal()});
 syncMobileLayout();
@@ -3659,15 +3722,17 @@ $('#btnHeaderSearch').onclick=()=>{
   setTimeout(()=>{const x=$('#busca');if(x){x.focus();x.select()}},60);
 };
 $('#btnNotif').onclick=async e=>{
-  e.stopPropagation();
+  e.preventDefault();e.stopPropagation();
   const pop=$('#notifPop');if(!pop)return;
-  const opening=pop.hidden;pop.hidden=!opening;
+  const opening=pop.hidden;
+  pop.hidden=!opening;
   if(opening){
     const pm=$('#profileMenu');if(pm)pm.hidden=true;
+    renderNotifications();
     if('Notification' in window&&Notification.permission==='default'){
       try{await Notification.requestPermission()}catch(x){}
+      renderNotifications();
     }
-    renderNotifications();
   }
 };
 $('#btnNotifPermission').onclick=async e=>{
@@ -3687,9 +3752,9 @@ document.addEventListener('click',e=>{
   if(pm&&!e.target.closest('.profile-wrap')){pm.hidden=true;$('#btnProfile').setAttribute('aria-expanded','false')}
   if(np&&!e.target.closest('.notif-wrap'))np.hidden=true;
 });
-$('#btnFrentes').onclick=()=>{closeMobileNav();listarFrentes()};
-$('#btnCtl').onclick=()=>{closeMobileNav();listarControles()};
-$('#btnCfg').onclick=()=>{closeMobileNav();if(S.view==='config')closeConfig();else openConfig()};
+$('#btnFrentes').onclick=()=>{listarFrentes();requestAnimationFrame(closeMobileNav)};
+$('#btnCtl').onclick=()=>{listarControles();requestAnimationFrame(closeMobileNav)};
+$('#btnCfg').onclick=()=>{if(S.view==='config')closeConfig();else openConfig();requestAnimationFrame(closeMobileNav)};
 $('#btnLogout').onclick=()=>{if(window.froeseBackend)window.froeseBackend.signOut()};
 
 /* ---------- primeiro acesso ---------- */
