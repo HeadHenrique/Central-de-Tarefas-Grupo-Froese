@@ -385,6 +385,57 @@ body::after{width:430px;height:760px;right:-310px;bottom:-80px;background:rgba(1
 }
 .btn.pri:hover{background:linear-gradient(135deg,#7f4cdd,#6934c9) !important}
 .top-action{display:inline-flex !important;align-items:center;gap:7px}
+.settings-action{
+  gap:9px !important;
+  padding:7px 13px 7px 8px !important;
+  border-color:#ddd4ef !important;
+  background:rgba(255,255,255,.88) !important;
+  overflow:hidden;
+}
+.settings-mini{
+  width:31px;
+  height:31px;
+  border-radius:9px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  flex:none;
+  background:linear-gradient(145deg,#8f61e7,#7543d6);
+  box-shadow:0 0 0 2px #eee8ff,0 5px 12px rgba(124,76,224,.15);
+}
+.settings-bar{
+  width:16px;
+  height:2px;
+  display:block;
+  position:relative;
+  border-radius:999px;
+  background:rgba(255,255,255,.9);
+}
+.settings-bar::before{
+  content:"";
+  position:absolute;
+  top:50%;
+  width:4px;
+  height:4px;
+  border-radius:50%;
+  background:#7c4ce0;
+  border:1.5px solid #fff;
+  box-shadow:0 0 4px rgba(255,255,255,.9);
+  transform:translate(-50%,-50%);
+  transition:left .28s ease,background .28s ease;
+}
+.settings-bar.bar-a::before{left:30%}
+.settings-bar.bar-b::before{left:70%}
+.settings-bar.bar-c::before{left:42%}
+.settings-action:hover .settings-bar.bar-a::before{left:72%}
+.settings-action:hover .settings-bar.bar-b::before{left:28%}
+.settings-action:hover .settings-bar.bar-c::before{left:66%}
+.settings-action:hover .settings-mini{
+  box-shadow:0 0 0 2px #e7ddff,0 7px 16px rgba(124,76,224,.22);
+}
+.settings-action:active .settings-mini{transform:scale(.96)}
 .btn-ico{width:16px;height:16px;flex:none}
 .new-demand{
   all:unset !important;
@@ -683,7 +734,7 @@ select.f:focus,input.f:focus{border-color:#a586e5 !important;box-shadow:0 0 0 3p
     <div class="grow"></div>
     <div class="who" id="who">Conectando...</div>
     <button class="btn top-action" id="btnResumo" type="button" hidden><svg class="btn-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="4" stroke="currentColor" stroke-width="1.8"/><path d="M9 12h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Resumo do dia</button>
-    <button class="btn top-action" id="btnCfg" type="button" hidden><svg class="btn-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M17.7 6.3l-1.4 1.4M7.7 16.3l-1.4 1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Configurações</button>
+    <button class="btn top-action settings-action" id="btnCfg" type="button" hidden><span class="settings-mini" aria-hidden="true"><i class="settings-bar bar-a"></i><i class="settings-bar bar-b"></i><i class="settings-bar bar-c"></i></span><span>Configurações</span></button>
     <button class="btn top-action" id="btnLogout" type="button" hidden>Sair</button>
     <button class="btn pri new-demand" id="btnNova" type="button"><span>Nova demanda</span></button>
   </header>
