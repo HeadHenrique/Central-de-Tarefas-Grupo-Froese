@@ -219,6 +219,13 @@
     if (error) throw mapError(error);
   }
 
+  async function removeAccess(email) {
+    email = emailNorm(email);
+    if (!email) return;
+    const { error } = await client.from('app_users').delete().eq('email', email);
+    if (error) throw mapError(error);
+  }
+
   async function linkPerson(personId) {
     const { data, error } = await client.rpc('link_person_self', { p_person_id: personId });
     if (error) throw mapError(error);
@@ -394,6 +401,7 @@
     init,
     signOut,
     syncAccess,
+    removeAccess,
     linkPerson,
     accessFor
   };
