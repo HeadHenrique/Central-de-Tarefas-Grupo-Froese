@@ -942,6 +942,15 @@ select.f:focus,input.f:focus{border-color:#a586e5 !important;box-shadow:0 0 0 3p
   #painel .stats .stat .vl{font-size:17px !important}
 }
 </style>
+<style id="atlas-stats-period-hidden">
+#cRz .rz-h{
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:flex-start !important;
+  width:100% !important;
+}
+#cRz #dnPer[hidden]{display:none !important}
+</style>
 <style id="atlas-header-v3">
 .top.atlas-header{
   position:relative;
@@ -1130,7 +1139,7 @@ select.f:focus,input.f:focus{border-color:#a586e5 !important;box-shadow:0 0 0 3p
       <button class="stat stat-demand" type="button" data-act="pendentes" id="cFr"><span class="stat-icon orange" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h8l4 4v12H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 4v4h4M10 12h6M10 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="lb">Demandas pendentes</span><span class="vl mono" id="stFr">0</span></button>
       <button class="stat stat-stopped" type="button" data-act="paradas" id="cPar"><span class="stat-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></svg></span><span class="lb">Demandas paradas</span><span class="vl mono" id="stPar">0</span></button>
       <div class="stat rz stat-done" id="cRz"><span class="stat-icon green" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 19v-5M10 19V9M14 19v-8M18 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-        <div class="rz-h"><span class="lb">Tarefas realizadas</span><select id="dnPer" aria-label="Período das tarefas realizadas"><option value="hoje">Hoje</option><option value="semana" selected>Esta semana</option><option value="mes">Este mês</option><option value="intervalo">Intervalo</option></select></div>
+        <div class="rz-h"><span class="lb">Tarefas realizadas</span><select id="dnPer" aria-label="Período das tarefas realizadas" hidden><option value="hoje">Hoje</option><option value="semana" selected>Esta semana</option><option value="mes">Este mês</option><option value="intervalo">Intervalo</option></select></div>
         <div class="dn-rng" id="dnRng" hidden><input type="date" id="dnDe" aria-label="Data inicial"><span>a</span><input type="date" id="dnAte" aria-label="Data final"></div>
         <button class="rz-b" type="button" data-act="realizadas"><span class="vl mono" id="stRz">0</span> <small class="meta" id="stRzF"></small></button>
       </div>
