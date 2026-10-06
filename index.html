@@ -1,7 +1,7 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Central de Tarefas Grupo Froese</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: tela única. Topo com indicadores clicáveis e filtros; coluna esquerda com Frentes e Tarefas; calendário 8h às 22h à direita, ajustado à altura da tela. Configurações em tela própria. Detalhes em pop-up parcial. */
 :root{
@@ -304,30 +304,325 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
+<style id="froese-lavender-theme">
+/* Identidade Lavanda Grupo Froese — camada estritamente visual */
+:root{
+  --bg:#f7f5ff !important;
+  --surface:#ffffff !important;
+  --surface-2:#f7f5ff !important;
+  --line:#e6e1f3 !important;
+  --fg:#17133f !important;
+  --muted:#747092 !important;
+  --accent:#7c4ce0 !important;
+  --accent-fg:#ffffff !important;
+  --accent-soft:#eee8ff !important;
+  --ok:#1faa61 !important;
+  --warn:#db8a2b !important;
+  --bad:#e95b72 !important;
+  --ai:#7d4fe0 !important;
+  --p1-bg:#f5f3fb !important; --p1-bd:#aaa2c6 !important;
+  --p2-bg:#f0ebff !important; --p2-bd:#8f6ee8 !important;
+  --p3-bg:#fff5e8 !important; --p3-bd:#e3a14f !important;
+  --p4-bg:#fff0f3 !important; --p4-bd:#ea7186 !important;
+  --h0:#f5f2fd !important; --h1:#e5dcfb !important; --h2:#cdbbf5 !important; --h3:#a98be9 !important; --h4:#7c4ce0 !important;
+  --veil:rgba(39,27,75,.22) !important;
+  --shadow:0 18px 45px rgba(87,64,145,.14) !important;
+  --font-ui:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif !important;
+  color-scheme:light !important;
+}
+html,body{min-height:100%}
+body{
+  background:
+    radial-gradient(circle at -5% -8%,rgba(139,92,246,.14) 0 8%,transparent 24%),
+    radial-gradient(circle at 103% 5%,rgba(159,123,247,.13) 0 9%,transparent 24%),
+    radial-gradient(circle at -2% 84%,rgba(133,94,229,.09) 0 9%,transparent 25%),
+    radial-gradient(circle at 98% 98%,rgba(128,91,225,.10) 0 10%,transparent 26%),
+    linear-gradient(180deg,#fcfbff 0%,#f6f3ff 100%) !important;
+  color:#17133f !important;
+  letter-spacing:-.01em;
+}
+body::before,body::after{
+  content:"";position:fixed;z-index:-1;pointer-events:none;border-radius:48%;
+  filter:blur(1px);transform:rotate(-18deg);
+}
+body::before{width:360px;height:720px;left:-250px;top:80px;background:rgba(139,92,246,.055)}
+body::after{width:430px;height:760px;right:-310px;bottom:-80px;background:rgba(124,76,224,.06)}
+
+.wrap{
+  max-width:1840px !important;
+  padding:16px 26px 24px !important;
+  gap:14px !important;
+}
+.top{gap:12px !important;min-height:52px}
+.brand{display:flex;align-items:center;gap:14px;min-width:255px}
+.brand-mark{
+  width:48px;height:48px;border-radius:13px;display:grid;place-items:center;flex:none;
+  color:#fff;background:linear-gradient(145deg,#8c5ce8,#6f3bd0);
+  box-shadow:0 10px 24px rgba(124,76,224,.26),inset 0 1px 0 rgba(255,255,255,.28);
+}
+.brand-mark svg{width:30px;height:30px}
+.brand-copy h1,.top h1{font-size:20px !important;font-weight:800 !important;color:#17133f !important;letter-spacing:-.035em !important}
+.brand-copy .sub,.top .sub{font-size:12px !important;color:#7b7597 !important;margin-top:1px}
+.who{color:#756f91 !important;font-weight:500}
+.who b{color:#17133f !important;font-weight:700 !important}
+.who .dot{box-shadow:0 0 0 3px rgba(34,197,94,.10)}
+
+.btn{
+  border:1px solid #e3ddf1 !important;
+  background:rgba(255,255,255,.82) !important;
+  color:#32295b !important;
+  border-radius:10px !important;
+  padding:8px 13px !important;
+  font-weight:600 !important;
+  box-shadow:0 3px 10px rgba(62,43,107,.035);
+  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.btn:hover{border-color:#bba9e8 !important;background:#fff !important;box-shadow:0 6px 16px rgba(92,64,151,.08);transform:translateY(-1px)}
+.btn.pri{
+  background:linear-gradient(135deg,#8b56e7,#7542d8) !important;
+  border-color:#7b49db !important;color:#fff !important;
+  box-shadow:0 8px 20px rgba(124,76,224,.22) !important;
+}
+.btn.pri:hover{background:linear-gradient(135deg,#7f4cdd,#6934c9) !important}
+.top-action{display:inline-flex !important;align-items:center;gap:7px}
+.btn-ico{width:16px;height:16px;flex:none}
+.new-demand{padding-inline:16px !important}
+.new-demand .btn-ico{width:17px;height:17px}
+
+.stats{gap:10px !important}
+.stat{
+  position:relative;
+  min-height:96px;
+  border:1px solid #ebe6f5 !important;
+  border-radius:14px !important;
+  background:rgba(255,255,255,.9) !important;
+  padding:13px 13px 12px 56px !important;
+  box-shadow:0 8px 28px rgba(67,45,119,.055);
+  justify-content:flex-start;
+}
+button.stat:hover,.rz-b:hover{border-color:#c7b4ee !important;box-shadow:0 10px 30px rgba(94,64,153,.10)}
+.stat.on{border-color:#9e7ce8 !important;box-shadow:0 0 0 2px rgba(124,76,224,.10),0 10px 28px rgba(94,64,153,.08) !important}
+.stat .lb{color:#716a90 !important;font-size:10.5px !important;font-weight:700 !important;line-height:1.25}
+.stat .vl{font-family:var(--font-ui) !important;font-size:22px !important;font-weight:800 !important;color:#17133f !important;margin-top:3px}
+.stat .vl small{color:#8982a4 !important}
+.stat-icon{
+  position:absolute;left:13px;top:13px;width:33px;height:33px;border-radius:10px;
+  display:grid;place-items:center;
+}
+.stat-icon svg{width:19px;height:19px}
+.stat-icon.purple{background:#efe9ff;color:#7d4cdb}
+.stat-icon.rose{background:#ffecee;color:#e45d71}
+.stat-icon.blue{background:#eaf1ff;color:#4f72e8}
+.stat-icon.orange{background:#fff2df;color:#e28b2f}
+.stat-icon.red{background:#ffebef;color:#e45067}
+.stat-icon.green{background:#e6faed;color:#21a75a}
+.stat-icon.violet{background:#efe9ff;color:#7a48dd}
+.stat.bad .vl{color:#e2556c !important}.stat.warn .vl{color:#d78a2c !important}
+.rz .vl{color:#1ba45b !important}
+.rz-h{gap:4px !important}
+.rz-h select,.dn-rng input{
+  border-color:#e5def2 !important;background:#fff !important;color:#51496f !important;border-radius:8px !important;
+}
+.caprow{grid-template-columns:92px 1fr 72px !important}
+.bar{background:#f0ecf8 !important;height:6px !important}
+.bar i{background:linear-gradient(90deg,#9b72e9,#7b4bdc) !important}
+
+.filters{gap:10px !important;padding:1px 0}
+.filters>.lb{font-size:11px !important;color:#655f86 !important;margin-right:2px}
+select.f,input.f{
+  border:1px solid #e1daef !important;background:rgba(255,255,255,.92) !important;
+  color:#39315e !important;border-radius:10px !important;padding:8px 11px !important;
+  box-shadow:0 3px 10px rgba(77,55,127,.025);
+}
+#busca{min-width:270px;padding-left:14px !important}
+select.f:focus,input.f:focus{border-color:#a586e5 !important;box-shadow:0 0 0 3px rgba(124,76,224,.09)}
+
+.main{grid-template-columns:minmax(340px,430px) minmax(0,1fr) !important;gap:12px !important}
+.side{gap:12px !important}
+.panel{
+  background:rgba(255,255,255,.93) !important;
+  border:1px solid #e8e2f3 !important;border-radius:14px !important;
+  box-shadow:0 8px 28px rgba(70,48,121,.045);
+}
+.sec-h{
+  padding:10px 13px !important;border-bottom:1px solid #eee9f7 !important;
+  min-height:50px;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(251,249,255,.88));
+  border-radius:14px 14px 0 0;
+}
+.sec-h h2{font-size:14px !important;font-weight:800 !important;color:#21184d}
+.sec-h h2::before{
+  content:"";width:28px;height:28px;border-radius:9px;display:inline-block;
+  background:#f0eaff center/17px 17px no-repeat;
+}
+#tkl{background:linear-gradient(180deg,#fff,#fdfcff)}
+#frl{background:linear-gradient(180deg,#fff,#fdfcff)}
+#tkl+.x{display:none}
+.sec:first-child .sec-h h2::before{
+  background-color:#efe9ff;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c4ce0' stroke-width='1.8'%3E%3Crect x='6' y='5' width='12' height='15' rx='2'/%3E%3Cpath d='M9 9h6M9 13h6M9 17h4'/%3E%3C/svg%3E");
+}
+.sec:nth-child(2) .sec-h h2::before{
+  background-color:#f1ecff;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c4ce0' stroke-width='1.8'%3E%3Cpath d='M7 5h10l2 3v11H5V8z'/%3E%3Cpath d='M5 9h14'/%3E%3C/svg%3E");
+}
+.cnt{background:#e4d9ff !important;color:#6235c4 !important;padding:1px 7px !important}
+.sec-h select{
+  border:1px solid #e1daef !important;background:#fff !important;color:#51496f !important;
+  border-radius:9px !important;padding:5px 8px !important;
+}
+.lst{padding:10px !important;gap:8px !important}
+.tk,.fr{
+  border:1px solid #e7e1f1 !important;background:#fff !important;border-radius:12px !important;
+  box-shadow:0 4px 13px rgba(73,51,122,.035);
+}
+.tk{padding:9px 10px !important}
+.tk:hover,.fr:hover{background:#fbf9ff !important;border-color:#cdbcf0 !important}
+.fr{padding:10px 12px 10px 15px !important}
+.fr-t,.tk-t{color:#20184c !important;font-weight:700 !important}
+.fr-ai{color:#8558dc !important}
+.fr-m,.fr-p,.tk-m{color:#77718f !important}
+.prog{background:#f0ecf8 !important}
+.prog i{background:linear-gradient(90deg,#6cd7a1,#46c88a) !important}
+
+#tkl .empty,#frl .empty{
+  min-height:215px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#7d769a !important;line-height:1.55;padding:28px !important;
+}
+#tkl .empty::before,#frl .empty::before{
+  content:"";width:74px;height:74px;margin-bottom:18px;border-radius:20px;
+  background:#f3eeff center/52px 52px no-repeat;
+  box-shadow:inset 0 0 0 1px #eee6ff;
+}
+#tkl .empty::before{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%23a888ed' stroke-width='3'%3E%3Crect x='17' y='14' width='30' height='38' rx='5'/%3E%3Cpath d='M25 14v-4h14v4M24 26h16M24 34h16M24 42h11'/%3E%3C/svg%3E");
+}
+#frl .empty::before{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%23a888ed' stroke-width='3'%3E%3Cpath d='M14 22h36l5 25H9z'/%3E%3Cpath d='M9 36h14l4 6h10l4-6h14'/%3E%3C/svg%3E");
+}
+#tkl .empty b,#frl .empty b{font-weight:800 !important;color:#23194d !important}
+
+.calcol{gap:8px !important}
+.tools{
+  background:rgba(255,255,255,.9);border:1px solid #e8e2f2;border-radius:14px 14px 0 0;
+  padding:9px 10px;margin-bottom:-9px;position:relative;z-index:2;
+}
+.nav .btn{background:#fff !important}
+.range{font-weight:800 !important;color:#22194d !important;letter-spacing:-.02em}
+.seg{border:1px solid #e3dcf0 !important;border-radius:10px !important;background:#faf8ff !important;padding:2px}
+.seg button{
+  color:#756e90 !important;border-radius:8px !important;padding:6px 11px !important;font-weight:600 !important;
+}
+.seg button+button{border-left:0 !important}
+.seg button[aria-pressed="true"]{
+  background:linear-gradient(135deg,#8d5ce5,#7644d7) !important;color:#fff !important;
+  box-shadow:0 5px 12px rgba(124,76,224,.20);
+}
+#cal{
+  border-radius:0 0 14px 14px !important;
+  overflow:hidden;background:rgba(255,255,255,.94) !important;
+}
+.tg-head{border-bottom:1px solid #e9e3f2 !important;background:#fff}
+.tg-head>div{color:#706a89 !important;border-left:1px solid #ebe5f3 !important;padding:7px 4px !important}
+.tg-head .d b{color:#5d527f !important}
+.tg-head .d.today b{color:#7c4ce0 !important}
+.tg-grid{background:#fff}
+.gut{background:#fbfaff}
+.gut span{color:#777092 !important}
+.daycol{
+  border-left:1px solid #ece7f4 !important;
+  background-image:linear-gradient(#eee9f5 1px,transparent 1px) !important;
+  background-color:rgba(255,255,255,.92) !important;
+}
+.daycol.today{background-color:#f3efff !important}
+.nowline{background:linear-gradient(90deg,#8c56e4,#6d3ed0) !important;height:2px !important}
+.blk{
+  border-radius:9px !important;box-shadow:inset 4px 0 0 var(--pc),0 4px 12px rgba(72,49,121,.08) !important;
+}
+.mo-grid,.yr{background:#fff}
+.mo-h{color:#6f688c !important;border-color:#ebe5f4 !important;background:#fbfaff}
+.mo-c{border-color:#ebe5f4 !important}
+.mo-c.out{background:#faf8ff !important}
+
+.ov{backdrop-filter:blur(8px)}
+.md{
+  border-color:#e8e1f3 !important;border-radius:16px !important;
+  box-shadow:0 24px 70px rgba(55,37,100,.20) !important;
+}
+.md-h{background:linear-gradient(180deg,#fff,#fcfaff);border-color:#eee8f5 !important;padding:14px 18px !important}
+.md-h h2{color:#21184d !important;font-weight:800 !important;letter-spacing:-.02em}
+.md-b{padding:16px 18px !important;gap:12px 14px !important}
+.fld>label,.fld>.lb,.lb{color:#716b8d !important}
+.fld input,.fld select,.fld textarea,.clr input,.clr select,.apv-a input{
+  border-color:#e1daed !important;background:#fff !important;color:#30285a !important;border-radius:9px !important;
+}
+.fld input:focus,.fld select:focus,.fld textarea:focus,.clr input:focus,.clr select:focus{
+  outline:none;border-color:#a98be9 !important;box-shadow:0 0 0 3px rgba(124,76,224,.08)
+}
+.clsec{background:#faf8ff !important;border-color:#e8e1f2 !important;border-radius:13px !important}
+.clr{border-color:#e7e0f0 !important;border-radius:10px !important}
+.md-f{background:#fcfaff;border-color:#eee8f5 !important;padding:12px 18px !important}
+.prios label,.vis label,.wdays label{border-color:#e1daed !important;background:#fff;border-radius:9px !important}
+.ai{background:#f8f3ff !important;border-color:#ddd0f6 !important}
+
+.cfgsec,.mod,.help,.wa,.apv{border-color:#e8e1f2 !important}
+.cfgsec{background:#fff !important}
+.mod,.help{background:#faf8ff !important}
+.eqt th{color:#716a8d !important}
+.eqt th,.eqt td{border-color:#eee8f5 !important}
+.eqt input[type=text],.eqt input[type=email],.eqt input[type=tel],.eqt input[type=number],.eqt select,.mod input,.mi select,.alc select,.alc input{
+  border-color:#e1daed !important;background:#fff !important;color:#332b5b !important;border-radius:8px !important;
+}
+.toast{background:#2a1c55 !important;color:#fff !important;border-radius:12px !important;box-shadow:0 10px 30px rgba(49,31,94,.22)}
+
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#d8cdec;border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#c2b1e4;background-clip:padding-box}
+
+@media (max-width:1250px){
+  .wrap{padding-inline:16px !important}
+  .stat{padding-left:50px !important}
+  .stat-icon{left:11px}
+}
+@media (max-width:1000px){
+  .main{grid-template-columns:1fr !important}
+  .brand{min-width:0}
+}
+@media (max-width:700px){
+  .wrap{padding:10px 10px 18px !important}
+  .brand-mark{width:42px;height:42px;border-radius:12px}
+  .brand-mark svg{width:27px;height:27px}
+  .stats{gap:8px !important}
+  .stat{min-height:88px}
+  #busca{min-width:100%;width:100%}
+  .top{align-items:flex-start}
+}
+</style>
+
 <div class="wrap" hidden>
   <header class="top">
-    <div><h1>Central de Tarefas</h1><div class="sub">Grupo Froese</div></div>
+    <div class="brand"><div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M9 9.5l2.2 2.2L15 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 10h6M18 17h6M18 24h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 16.5l2.2 2.2L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 23.5l2.2 2.2L15 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="brand-copy"><h1>Central de Tarefas</h1><div class="sub">Grupo Froese</div></div></div>
     <div class="grow"></div>
     <div class="who" id="who">Conectando...</div>
-    <button class="btn" id="btnResumo" type="button" hidden>Resumo do dia</button>
-    <button class="btn" id="btnCfg" type="button" hidden>Configurações</button>
-    <button class="btn" id="btnLogout" type="button" hidden>Sair</button>
-    <button class="btn pri" id="btnNova" type="button">Nova demanda</button>
+    <button class="btn top-action" id="btnResumo" type="button" hidden><svg class="btn-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="4" stroke="currentColor" stroke-width="1.8"/><path d="M9 12h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Resumo do dia</button>
+    <button class="btn top-action" id="btnCfg" type="button" hidden><svg class="btn-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M17.7 6.3l-1.4 1.4M7.7 16.3l-1.4 1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Configurações</button>
+    <button class="btn top-action" id="btnLogout" type="button" hidden>Sair</button>
+    <button class="btn pri new-demand" id="btnNova" type="button"><svg class="btn-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Nova demanda</button>
   </header>
 
   <div id="painel">
     <section class="stats" aria-label="Indicadores">
-      <button class="stat" type="button" data-act="hoje" id="cHoje"><span class="lb">Tarefas para hoje</span><span class="vl mono" id="stHoje">0</span></button>
-      <button class="stat" type="button" data-act="atrasadas" id="cAtr"><span class="lb">Tarefas atrasadas</span><span class="vl mono" id="stAtr">0</span></button>
-      <button class="stat" type="button" data-act="aprov" id="cAp"><span class="lb">Aprovações pendentes</span><span class="vl mono" id="stAp">0</span></button>
-      <button class="stat" type="button" data-act="pendentes" id="cFr"><span class="lb">Demandas pendentes</span><span class="vl mono" id="stFr">0</span></button>
-      <button class="stat" type="button" data-act="paradas" id="cPar"><span class="lb">Demandas paradas</span><span class="vl mono" id="stPar">0</span></button>
-      <div class="stat rz" id="cRz">
+      <button class="stat stat-today" type="button" data-act="hoje" id="cHoje"><span class="stat-icon purple" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="5" width="14" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M9 3v4M15 3v4M8 11h8M9 15h2M13 15h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="lb">Tarefas para hoje</span><span class="vl mono" id="stHoje">0</span></button>
+      <button class="stat stat-late" type="button" data-act="atrasadas" id="cAtr"><span class="stat-icon rose" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="lb">Tarefas atrasadas</span><span class="vl mono" id="stAtr">0</span></button>
+      <button class="stat stat-approval" type="button" data-act="aprov" id="cAp"><span class="stat-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 12l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="lb">Aprovações pendentes</span><span class="vl mono" id="stAp">0</span></button>
+      <button class="stat stat-demand" type="button" data-act="pendentes" id="cFr"><span class="stat-icon orange" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h8l4 4v12H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 4v4h4M10 12h6M10 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="lb">Demandas pendentes</span><span class="vl mono" id="stFr">0</span></button>
+      <button class="stat stat-stopped" type="button" data-act="paradas" id="cPar"><span class="stat-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></svg></span><span class="lb">Demandas paradas</span><span class="vl mono" id="stPar">0</span></button>
+      <div class="stat rz stat-done" id="cRz"><span class="stat-icon green" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 19v-5M10 19V9M14 19v-8M18 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
         <div class="rz-h"><span class="lb">Tarefas realizadas</span><select id="dnPer" aria-label="Período das tarefas realizadas"><option value="hoje">Hoje</option><option value="semana" selected>Esta semana</option><option value="mes">Este mês</option><option value="intervalo">Intervalo</option></select></div>
         <div class="dn-rng" id="dnRng" hidden><input type="date" id="dnDe" aria-label="Data inicial"><span>a</span><input type="date" id="dnAte" aria-label="Data final"></div>
         <button class="rz-b" type="button" data-act="realizadas"><span class="vl mono" id="stRz">0</span> <small class="meta" id="stRzF"></small></button>
       </div>
-      <div class="stat capc"><span class="lb">Horas planejadas na semana x capacidade</span><div class="cap" id="cap"></div></div>
+      <div class="stat capc stat-capacity"><span class="stat-icon violet" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="lb">Horas planejadas na semana x capacidade</span><div class="cap" id="cap"></div></div>
     </section>
 
     <div class="filters" style="margin-top:10px">
