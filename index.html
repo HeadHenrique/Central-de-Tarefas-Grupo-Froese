@@ -736,127 +736,103 @@ function rangeLabel(){
   return fmtDM(ds[0])+' a '+fmtD(ds[ds.length-1]);
 }
 function hourH(){const c=$('#cal');const top=c.getBoundingClientRect().top+scrollY;const avail=innerHeight-top-62;return Math.max(24,Math.min(64,Math.floor(avail/NH)))}
-const badgeHTML=(k,l,short)=>l&&l.length?'<button type="button" class="badge'+(l.some(f=>f.late)?' late':'')+'" data-day="'+k+'">'+l.length+(short?(l.length===1?' demanda':' demandas'):(l.length===1?' demanda pendente':' demandas pendentes'))+'</button>':'';
+function demandOccs(from,to){
+  const out=[],now=new Date();
+  for(const t of visible()){
+    if(!passFrente(t))continue;
+    for(const f of frenteDates(t,from,to)){
+      const done=frenteDone(t,f.k),p=prog(t,f.k),start=f.prazo,dur=60,end=new Date(start.getTime()+dur*6e4);
+      out.push({
+        key:'d:'+t.id+(f.k?'|'+f.k:''),
+        t,k:f.k,start,end,dur,
+        resp:t.responsavel,prio:t.prioridade||2,
+        done,atrasada:!done&&start<now,progress:p
+      });
+    }
+  }
+  return out.sort((a,b)=>a.start-b.start||a.t.descricao.localeCompare(b.t.descricao));
+}
 function layout(list){
   list.sort((a,b)=>a.start-b.start||b.dur-a.dur);
   const cl=[];let cur=[],end=0;
-  for(const o of list){const s=+o.start,e=Math.max(+o.end,s+25*6e4);if(cur.length&&s>=end){cl.push(cur);cur=[];end=0}cur.push(o);o._e=e;end=Math.max(end,e)}
+  for(const o of list){const st=+o.start,en=Math.max(+o.end,st+25*6e4);if(cur.length&&st>=end){cl.push(cur);cur=[];end=0}cur.push(o);o._e=en;end=Math.max(end,en)}
   if(cur.length)cl.push(cur);
   for(const c of cl){const lanes=[];for(const o of c){let i=lanes.findIndex(x=>x<=+o.start);if(i<0){i=lanes.length;lanes.push(0)}lanes[i]=o._e;o.lane=i}c.forEach(o=>o.lanes=lanes.length)}
 }
-function blockHTML(o){
+function demandBlockHTML(o){
   const H=S.hour,m=o.start.getHours()*60+o.start.getMinutes();let top=(m-H0*60)*H/60,cut=false;
-  if(top<0){top=0;cut=true}if(top>H*NH-22){top=H*NH-22;cut=true}
-  const h=Math.max(20,Math.min(H*NH-top,o.dur*H/60)),w=100/o.lanes,l=o.lane*w;
-  return '<div class="blk p'+o.prio+(o.done?' done':'')+(o.atrasada?' late':'')+(cut?' cut':'')+'" data-key="'+esc(o.key)+'" title="'+esc(o.t.descricao+': '+o.desc+' ('+hm(o.start)+')')+'" style="top:'+top+'px;height:'+h+'px;left:calc('+l+'% + 2px);width:calc('+w+'% - 4px);--pc:'+esc(pColor(o.resp))+'">'+
-    (o.ap?'':'<input type="checkbox" aria-label="Tarefa feita" '+(o.done?'checked':'')+'>')+'<div class="tx">'+(h>34?'<div class="fref">'+esc(o.t.descricao)+'</div>':'')+'<div class="t">'+(o.ap?'Aprovação: ':'')+esc(o.desc)+'</div>'+(h>48?'<div class="m"><span class="mono">'+hm(o.start)+'-'+hm(o.end)+'</span> '+esc(pName(o.resp))+'</div>':'')+'</div><div class="rs" aria-hidden="true"></div></div>';
+  if(top<0){top=0;cut=true}if(top>H*NH-28){top=H*NH-28;cut=true}
+  const h=Math.max(30,Math.min(H*NH-top,o.dur*H/60)),w=100/o.lanes,l=o.lane*w,p=o.progress||{d:0,n:0};
+  return '<div class="blk demand p'+o.prio+(o.done?' done':'')+(o.atrasada?' late':'')+(cut?' cut':'')+'" data-key="'+esc(o.key)+'" title="'+esc(o.t.descricao+' ('+hm(o.start)+')')+'" style="top:'+top+'px;height:'+h+'px;left:calc('+l+'% + 2px);width:calc('+w+'% - 4px);--pc:'+esc(pColor(o.resp))+';cursor:pointer">'+
+    '<div class="tx"><div class="t">'+esc(o.t.descricao)+'</div>'+
+    (h>34?'<div class="m"><span class="mono">'+hm(o.start)+'</span> · '+esc(pName(o.resp))+(p.n?' · '+p.d+'/'+p.n+' tarefas':'')+'</div>':'')+
+    '</div></div>';
 }
-let PEND={};
 function renderTime(c){
   S.hour=hourH();document.documentElement.style.setProperty('--hour',S.hour+'px');
   const days=viewDays(),from=days[0],to=addDays(days[days.length-1],1);
-  const occs=allItems(from,to);OCC={};occs.forEach(o=>OCC[o.key]=o);
-  PEND=pendingByDay(from,to);
-  const tk=ymd(new Date()),n=days.length,anyB=days.some(d=>PEND[ymd(d)]);
-  const head='<div></div>'+days.map(d=>{const k=ymd(d);return '<div class="d'+(k===tk?' today':'')+'"><span>'+DIAS[d.getDay()]+' <b class="mono">'+pad(d.getDate())+'</b></span>'+(badgeHTML(k,PEND[k],n>3)||(anyB?'<span class="badge-sp"></span>':''))+'</div>'}).join('');
+  const occs=demandOccs(from,to);OCC={};occs.forEach(o=>OCC[o.key]=o);
+  const tk=ymd(new Date()),n=days.length;
+  const head='<div></div>'+days.map(d=>{const k=ymd(d);return '<div class="d'+(k===tk?' today':'')+'"><span>'+DIAS[d.getDay()]+' <b class="mono">'+pad(d.getDate())+'</b></span></div>'}).join('');
   const gut='<div class="gut">'+Array.from({length:NH-1},(_,i)=>'<span style="top:'+((i+1)*S.hour)+'px">'+pad(H0+i+1)+':00</span>').join('')+'</div>';
   let cols='';
   days.forEach(d=>{const k=ymd(d),list=occs.filter(o=>ymd(o.start)===k);layout(list);
     let now='';if(k===tk){const x=new Date(),m=x.getHours()*60+x.getMinutes();if(m>=H0*60&&m<=H1*60)now='<div class="nowline" style="top:'+((m-H0*60)*S.hour/60)+'px"></div>'}
-    cols+='<div class="daycol'+(k===tk?' today':'')+'" data-date="'+k+'">'+list.map(blockHTML).join('')+now+'</div>'});
+    cols+='<div class="daycol'+(k===tk?' today':'')+'" data-date="'+k+'">'+list.map(demandBlockHTML).join('')+now+'</div>'});
   c.innerHTML='<div class="tg"><div class="tg-inner" style="--n:'+n+';--minw:'+(n>3?46+n*104:0)+'px"><div class="tg-head">'+head+'</div><div class="tg-body" id="tgb"><div class="tg-grid">'+gut+cols+'</div></div></div></div>';
-  c.querySelector('.tg-head').addEventListener('click',e=>{const bd=e.target.closest('.badge');if(bd)dayFrentes(bd.dataset.day)});
-  bindGrid($('#tgb'));
+  bindDemandGrid($('#tgb'));
 }
-function bindGrid(body){
-  let d=null;const H=()=>S.hour;
-  body.addEventListener('change',e=>{if(e.target.matches('.blk input')){const o=OCC[e.target.closest('.blk').dataset.key];if(o)setDone(o.t,o.k,o.item.id,e.target.checked)}});
-  body.addEventListener('pointerdown',e=>{
-    if(e.button!==0||e.target.matches('input'))return;
-    const blk=e.target.closest('.blk'),col=e.target.closest('.daycol');if(!col)return;
-    if(blk){const o=OCC[blk.dataset.key];if(!o)return;
-      d={type:e.target.classList.contains('rs')?'resize':'move',blk,o,x0:e.clientX,y0:e.clientY,top0:parseFloat(blk.style.top),h0:parseFloat(blk.style.height),moved:false};
-      blk.setPointerCapture(e.pointerId);e.preventDefault();
-    }else{if(!canCreate())return;d={type:'new',col,x0:e.clientX,y0:e.clientY,y:e.clientY-col.getBoundingClientRect().top,moved:false}}
+function bindDemandGrid(body){
+  body.addEventListener('click',e=>{
+    const blk=e.target.closest('.blk.demand');
+    if(blk){const o=OCC[blk.dataset.key];if(o)openFrente({t:o.t,k:o.k});return}
+    const col=e.target.closest('.daycol');if(!col||!canCreate())return;
+    const r=col.getBoundingClientRect(),y=Math.max(0,Math.min(r.height,e.clientY-r.top));
+    const s=parseYmd(col.dataset.date);
+    const mins=H0*60+Math.max(0,Math.min(NH*60-30,Math.floor(y/S.hour*60/30)*30));
+    s.setHours(0,mins,0,0);openFrente({nova:true,start:s});
   });
-  body.addEventListener('pointermove',e=>{
-    if(!d)return;const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
-    if(!d.moved&&Math.hypot(dx,dy)<5)return;
-    if(!d.moved){d.moved=true;if(d.type==='new')return;S.dragging=true;d.blk.classList.add('dragging')}
-    if(d.type==='new')return;
-    if(d.type==='move'){
-      const dm=Math.round(dy/H()*60/15)*15;d.blk.style.top=Math.max(0,Math.min(H()*NH-H()/4,d.top0+dm*H()/60))+'px';
-      const tgt=[...body.querySelectorAll('.daycol')].find(cc=>{const r=cc.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<r.right});
-      if(tgt&&tgt!==d.blk.parentElement){tgt.appendChild(d.blk);d.blk.style.left='2px';d.blk.style.width='calc(100% - 4px)'}
-    }else{const dur=Math.max(15,Math.round((d.h0+dy)/H()*60/15)*15);d.blk.style.height=(dur*H()/60)+'px';d.dur=dur}
-  });
-  body.addEventListener('pointerup',()=>{
-    if(!d)return;const x=d;d=null;S.dragging=false;
-    if(x.type==='new'){if(!x.moved){const s=parseYmd(x.col.dataset.date);s.setMinutes(H0*60+Math.floor(x.y/H()*60/30)*30);openFrente({nova:true,start:s})}return}
-    if(!x.moved){if(S.pending){S.pending=false;render()}abrirItem(x.o);return}
-    if(x.type==='move'){const s=parseYmd(x.blk.parentElement.dataset.date);s.setMinutes(H0*60+Math.round(parseFloat(x.blk.style.top)/H()*60/15)*15);commitItem(x.o,s,x.o.dur)}
-    else commitItem(x.o,x.o.start,x.dur||x.o.dur);
-    S.pending=false;render();
-  });
-  body.addEventListener('pointercancel',()=>{d=null;S.dragging=false;render()});
 }
-function commitItem(o,start,dur){
-  const t=o.t,cl=cloneCL(t.checklist),it=cl.find(x=>x.id===o.item.id);if(!it)return;
-  if(o.k)it.offset=dayDiff(parseYmd(o.k),start);else it.data=ymd(start);it.hora=hm(start);it.duracao=dur;
-  write(t.id,()=>tRef(t.id).update({checklist:cl,ultimaAtividade:nowIso()}));
-}
-function chipHTML(o){
-  return '<div class="chip p'+o.prio+(o.done?' done':'')+(o.atrasada?' late':'')+'" draggable="true" data-key="'+esc(o.key)+'" style="--pc:'+esc(pColor(o.resp))+'" title="'+esc(o.t.descricao)+'">'+
-    (o.ap?'':'<input type="checkbox" aria-label="Tarefa feita" '+(o.done?'checked':'')+'>')+'<span class="hr">'+hm(o.start)+'</span><span>'+(o.ap?'Aprovação: ':'')+esc(o.desc)+'</span></div>';
+function demandChipHTML(o){
+  const p=o.progress||{d:0,n:0};
+  return '<div class="chip demand p'+o.prio+(o.done?' done':'')+(o.atrasada?' late':'')+'" data-key="'+esc(o.key)+'" style="--pc:'+esc(pColor(o.resp))+'" title="'+esc(o.t.descricao)+'">'+
+    '<span class="hr">'+hm(o.start)+'</span><span>'+esc(o.t.descricao)+(p.n?' · '+p.d+'/'+p.n:'')+'</span></div>';
 }
 function renderMonth(c){
   const d=S.date,g0=sow(new Date(d.getFullYear(),d.getMonth(),1)),g1=addDays(g0,42);
-  const occs=allItems(g0,g1);OCC={};occs.forEach(o=>OCC[o.key]=o);PEND=pendingByDay(g0,g1);
-  const by={};occs.sort((a,b)=>a.start-b.start).forEach(o=>(by[ymd(o.start)]=by[ymd(o.start)]||[]).push(o));
+  const occs=demandOccs(g0,g1);OCC={};occs.forEach(o=>OCC[o.key]=o);
+  const by={};occs.forEach(o=>(by[ymd(o.start)]=by[ymd(o.start)]||[]).push(o));
   const tk=ymd(new Date());
   let h='<div class="mo"><div class="mo-grid">'+['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(x=>'<div class="mo-h">'+x+'</div>').join('');
   for(let i=0;i<42;i++){const day=addDays(g0,i),k=ymd(day),l=by[k]||[];
-    h+='<div class="mo-c'+(day.getMonth()!==d.getMonth()?' out':'')+(k===tk?' today':'')+'" data-date="'+k+'"><div class="mo-top"><span class="dn">'+day.getDate()+'</span>'+badgeHTML(k,PEND[k],true)+'</div>'+
-      l.slice(0,3).map(chipHTML).join('')+(l.length>3?'<button type="button" class="more" data-date="'+k+'">mais '+(l.length-3)+' tarefas</button>':'')+'</div>'}
+    h+='<div class="mo-c'+(day.getMonth()!==d.getMonth()?' out':'')+(k===tk?' today':'')+'" data-date="'+k+'"><div class="mo-top"><span class="dn">'+day.getDate()+'</span></div>'+
+      l.slice(0,3).map(demandChipHTML).join('')+(l.length>3?'<button type="button" class="more" data-date="'+k+'">mais '+(l.length-3)+' demandas</button>':'')+'</div>'}
   c.innerHTML=h+'</div></div>';
   const g=c.querySelector('.mo-grid');
-  g.addEventListener('change',e=>{if(e.target.matches('.chip input')){const o=OCC[e.target.closest('.chip').dataset.key];if(o)setDone(o.t,o.k,o.item.id,e.target.checked)}});
   g.addEventListener('click',e=>{
-    if(e.target.matches('input'))return;
-    const bd=e.target.closest('.badge');if(bd){dayFrentes(bd.dataset.day);return}
-    const more=e.target.closest('.more');if(more){dayItems(more.dataset.date,by[more.dataset.date]||[]);return}
-    const ch=e.target.closest('.chip');if(ch){const o=OCC[ch.dataset.key];if(o)abrirItem(o);return}
+    const more=e.target.closest('.more');if(more){dayDemands(more.dataset.date,by[more.dataset.date]||[]);return}
+    const ch=e.target.closest('.chip.demand');if(ch){const o=OCC[ch.dataset.key];if(o)openFrente({t:o.t,k:o.k});return}
     const cell=e.target.closest('.mo-c');if(cell&&canCreate()){const s=parseYmd(cell.dataset.date);s.setHours(9);openFrente({nova:true,start:s})}
   });
-  let dk=null;
-  g.addEventListener('dragstart',e=>{const ch=e.target.closest('.chip');if(!ch)return;dk=ch.dataset.key;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dk)}catch(x){}});
-  g.addEventListener('dragover',e=>{const cell=e.target.closest('.mo-c');if(cell&&dk){e.preventDefault();g.querySelectorAll('.drop').forEach(x=>x!==cell&&x.classList.remove('drop'));cell.classList.add('drop')}});
-  g.addEventListener('drop',e=>{e.preventDefault();const cell=e.target.closest('.mo-c');g.querySelectorAll('.drop').forEach(x=>x.classList.remove('drop'));
-    const o=OCC[dk];dk=null;if(!cell||!o)return;const s=parseYmd(cell.dataset.date);s.setHours(o.start.getHours(),o.start.getMinutes());if(+s!==+o.start)commitItem(o,s,o.dur)});
 }
 function renderYear(c){
   const y=S.date.getFullYear(),a=new Date(y,0,1),b=new Date(y+1,0,1);
-  const cnt={};allItems(a,b).forEach(o=>{const k=ymd(o.start);cnt[k]=(cnt[k]||0)+1});
+  const cnt={};demandOccs(a,b).forEach(o=>{const k=ymd(o.start);cnt[k]=(cnt[k]||0)+1});
   const lv=n=>!n?0:n===1?1:n<=3?2:n<=6?3:4,tk=ymd(new Date());
   let h='<div class="yr">';
   for(let m=0;m<12;m++){const off=(new Date(y,m,1).getDay()+6)%7,dim=new Date(y,m+1,0).getDate();
     h+='<div class="ym"><h4>'+MESES[m]+'</h4><div class="yg">'+['S','T','Q','Q','S','S','D'].map(x=>'<span class="wd">'+x+'</span>').join('')+'<span></span>'.repeat(off);
-    for(let dd=1;dd<=dim;dd++){const k=y+'-'+pad(m+1)+'-'+pad(dd),n=cnt[k]||0;h+='<button type="button" class="yd l'+lv(n)+(k===tk?' today':'')+'" data-date="'+k+'" title="'+pad(dd)+'/'+pad(m+1)+': '+n+' tarefa'+(n===1?'':'s')+'">'+dd+'</button>'}
+    for(let dd=1;dd<=dim;dd++){const k=y+'-'+pad(m+1)+'-'+pad(dd),n=cnt[k]||0;h+='<button type="button" class="yd l'+lv(n)+(k===tk?' today':'')+'" data-date="'+k+'" title="'+pad(dd)+'/'+pad(m+1)+': '+n+' demanda'+(n===1?'':'s')+'">'+dd+'</button>'}
     h+='</div></div>'}
-  c.innerHTML=h+'</div><div class="legend">Menos <i style="background:var(--h0)"></i><i style="background:var(--h1)"></i><i style="background:var(--h2)"></i><i style="background:var(--h3)"></i><i style="background:var(--h4)"></i> Mais tarefas no dia</div>';
+  c.innerHTML=h+'</div><div class="legend">Menos <i style="background:var(--h0)"></i><i style="background:var(--h1)"></i><i style="background:var(--h2)"></i><i style="background:var(--h3)"></i><i style="background:var(--h4)"></i> Mais demandas no dia</div>';
   c.querySelector('.yr').addEventListener('click',e=>{const bt=e.target.closest('.yd');if(bt){S.mode='dia';S.date=parseYmd(bt.dataset.date);saveView();render()}});
 }
-function dayFrentes(k){
-  const l=PEND[k]||[],day=parseYmd(k);
-  const el=overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Demandas pendentes em '+fmtD(day)+'</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="md-s"><div class="plist">'+
-    l.map((f,i)=>{const p=prog(f.t,f.k),ai=f.t.resumoIA&&f.t.resumoIA.texto;return '<button type="button" class="fr p'+(f.t.prioridade||2)+(f.late?' late':'')+'" data-i="'+i+'"><span class="fr-top"><span class="fr-t">'+esc(f.t.descricao)+'</span>'+(f.late?'<span class="pill st-atrasada">Atrasada</span>':'')+'</span>'+(ai?'<span class="fr-ai">'+esc(ai)+'</span>':'')+'<span class="fr-m">'+esc(pName(f.t.responsavel))+'<span>prazo <span class="mono">'+hm(f.prazo)+'</span></span></span><span class="fr-p"><span class="prog"><i style="width:'+(p.n?p.d/p.n*100:0)+'%"></i></span><span class="mono">'+p.d+' de '+p.n+'</span></span></button>'}).join('')+'</div></div></div>');
-  el.addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b){const f=l[+b.dataset.i];closeLayer();openFrente({t:f.t,k:f.k})}});
-}
-function dayItems(k,list){
+function dayDemands(k,list){
   const day=parseYmd(k);
-  const el=overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Tarefas de '+fmtD(day)+'</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="md-s"><div class="plist">'+list.map(chipHTML).join('')+'</div></div></div>');
-  el.addEventListener('change',e=>{if(e.target.matches('.chip input')){const o=OCC[e.target.closest('.chip').dataset.key];if(o)setDone(o.t,o.k,o.item.id,e.target.checked)}});
-  el.addEventListener('click',e=>{const ch=e.target.closest('.chip');if(ch&&!e.target.matches('input')){const o=OCC[ch.dataset.key];closeLayer();if(o)abrirItem(o)}});
+  const el=overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Demandas de '+fmtD(day)+'</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="md-s"><div class="plist">'+
+    list.map((o,i)=>{const p=o.progress||{d:0,n:0};return '<button type="button" class="fr p'+o.prio+(o.atrasada?' late':'')+(o.done?' done':'')+'" data-i="'+i+'"><span class="fr-top"><span class="fr-t">'+esc(o.t.descricao)+'</span>'+(o.atrasada?'<span class="pill st-atrasada">Atrasada</span>':'')+(o.done?'<span class="pill st-concluida">Concluída</span>':'')+'</span><span class="fr-m"><span class="dot" style="background:'+esc(pColor(o.resp))+'"></span>'+esc(pName(o.resp))+'<span class="mono">'+hm(o.start)+'</span></span><span class="fr-p"><span class="prog"><i style="width:'+(p.n?p.d/p.n*100:0)+'%"></i></span><span class="mono">'+p.d+' de '+p.n+' tarefas</span></span></button>'}).join('')+
+    '</div></div></div>');
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b){const o=list[+b.dataset.i];closeLayer();if(o)openFrente({t:o.t,k:o.k})}});
 }
 
 /* ---------- concluir tarefas e registros ---------- */
