@@ -289,6 +289,7 @@
           <div class="auth-actions">
             <button class="auth-btn primary" id="authLogin" type="submit">Entrar</button>
             <button class="auth-btn" id="authSignup" type="button">Criar primeiro acesso</button>
+            <button class="auth-btn" id="authResend" type="button" hidden>Reenviar confirmação</button>
           </div>
           <div class="auth-msg" id="authMsg"></div>
         </form>
@@ -301,8 +302,9 @@
     const msg = gate.querySelector('#authMsg');
     const login = gate.querySelector('#authLogin');
     const signup = gate.querySelector('#authSignup');
+    const resend = gate.querySelector('#authResend');
 
-    const setBusy = v => { login.disabled = v; signup.disabled = v; };
+    const setBusy = v => { login.disabled = v; signup.disabled = v; resend.disabled = v; };
     const show = (text, type) => { msg.textContent = text || ''; msg.className = 'auth-msg' + (type ? ' ' + type : ''); };
 
     form.addEventListener('submit', async e => {
@@ -314,7 +316,15 @@
         password: pass.value
       });
       setBusy(false);
-      if (error) return show('E-mail ou senha inválidos, ou o e-mail ainda não foi confirmado.', 'err');
+      if (error) {
+        const code = String(error.code || '').toLowerCase();
+        const message = String(error.message || '').toLowerCase();
+        if (code === 'email_not_confirmed' || message.includes('email not confirmed')) {
+          resend.hidden = false;
+          return show('Seu acesso foi criado, mas falta confirmar o e-mail. Confira a caixa de entrada ou clique em "Reenviar confirmação".', 'err');
+        }
+        return show('E-mail ou senha inválidos. Confira os dados e tente novamente.', 'err');
+      }
       location.reload();
     });
 
@@ -335,7 +345,26 @@
         location.reload();
         return;
       }
-      show('Acesso criado. Confira o e-mail de confirmação e depois volte para entrar.', 'ok');
+      resend.hidden = false;
+      show('Acesso criado. Agora confirme o e-mail enviado pelo Supabase. Depois volte aqui e clique em Entrar.', 'ok');
+    });
+
+    resend.addEventListener('click', async () => {
+      const em = emailNorm(email.value);
+      if (!em) {
+        show('Informe seu e-mail primeiro.', 'err');
+        email.focus();
+        return;
+      }
+      show('');
+      setBusy(true);
+      const { error } = await client.auth.resend({
+        type: 'signup',
+        email: em
+      });
+      setBusy(false);
+      if (error) return show('Não foi possível reenviar agora. Aguarde alguns segundos e tente novamente.', 'err');
+      show('E-mail de confirmação reenviado. Confira também a caixa de spam ou promoções.', 'ok');
     });
   }
 
