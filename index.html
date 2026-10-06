@@ -721,6 +721,78 @@ select.f:focus,input.f:focus{border-color:#a586e5 !important;box-shadow:0 0 0 3p
   .top{align-items:flex-start}
 }
 </style>
+<style id="settings-button-final">
+#btnCfg.settings-action{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:10px !important;
+  min-height:42px !important;
+  padding:4px 15px 4px 5px !important;
+  border:1px solid #d9ceef !important;
+  border-radius:12px !important;
+  background:#fff !important;
+  color:#30255d !important;
+  font-size:13px !important;
+  font-weight:700 !important;
+  box-shadow:0 5px 14px rgba(70,45,120,.07) !important;
+  transition:transform .18s ease,box-shadow .22s ease,border-color .22s ease !important;
+}
+#btnCfg.settings-action:hover{
+  background:#fff !important;
+  color:#30255d !important;
+  border-color:#a98be9 !important;
+  box-shadow:0 9px 20px rgba(124,76,224,.14) !important;
+  transform:translateY(-1px) !important;
+}
+#btnCfg.settings-action .settings-mini{
+  width:34px !important;
+  height:34px !important;
+  border-radius:10px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:4px !important;
+  flex:0 0 34px !important;
+  background:linear-gradient(145deg,#9466eb,#7543d6) !important;
+  box-shadow:0 0 0 2px #eee8ff,0 5px 12px rgba(124,76,224,.18) !important;
+  transition:transform .18s ease,box-shadow .22s ease !important;
+}
+#btnCfg.settings-action .settings-bar{
+  width:18px !important;
+  height:2px !important;
+  display:block !important;
+  position:relative !important;
+  border-radius:999px !important;
+  background:#f4efff !important;
+}
+#btnCfg.settings-action .settings-bar::before{
+  content:"" !important;
+  position:absolute !important;
+  top:50% !important;
+  width:5px !important;
+  height:5px !important;
+  border-radius:50% !important;
+  background:#6f3bd0 !important;
+  border:1.5px solid #fff !important;
+  box-shadow:0 0 4px rgba(255,255,255,.95) !important;
+  transform:translate(-50%,-50%) !important;
+  transition:left .3s ease !important;
+}
+#btnCfg.settings-action .bar-a::before{left:28% !important}
+#btnCfg.settings-action .bar-b::before{left:72% !important}
+#btnCfg.settings-action .bar-c::before{left:43% !important}
+#btnCfg.settings-action:hover .bar-a::before{left:72% !important}
+#btnCfg.settings-action:hover .bar-b::before{left:28% !important}
+#btnCfg.settings-action:hover .bar-c::before{left:66% !important}
+#btnCfg.settings-action:hover .settings-mini{
+  transform:rotate(-2deg) scale(1.04) !important;
+  box-shadow:0 0 0 2px #e8deff,0 8px 16px rgba(124,76,224,.24) !important;
+}
+#btnCfg.settings-action:active{transform:translateY(0) scale(.98) !important}
+#btnCfg.settings-action > span:last-child{position:relative;z-index:2}
+</style>
 <style id="atlas-brand-overrides">
 .atlas-brand{display:flex;align-items:center;min-width:165px}
 .atlas-brand-logo{display:block;width:145px;max-width:22vw;height:auto;object-fit:contain;object-position:left center}
