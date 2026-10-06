@@ -124,6 +124,39 @@
           .eq('collection', collection)
           .eq('id', id);
         if (error) throw mapError(error);
+      },
+      onSnapshot(next, errorCb) {
+        let alive = true;
+        let timer = null;
+        const emit = async () => {
+          clearTimeout(timer);
+          timer = setTimeout(async () => {
+            if (!alive) return;
+            try {
+              const snap = await this.get();
+              if (alive) next(snap);
+            } catch (e) {
+              if (alive && errorCb) errorCb(e);
+            }
+          }, 30);
+        };
+        emit();
+        const channel = client
+          .channel('doc-' + collection + '-' + id + '-' + makeId())
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'documents', filter: 'collection=eq.' + collection },
+            payload => {
+              const row = payload.new && payload.new.id ? payload.new : payload.old;
+              if (!row || row.id === id) emit();
+            }
+          )
+          .subscribe();
+        return () => {
+          alive = false;
+          clearTimeout(timer);
+          client.removeChannel(channel);
+        };
       }
     };
   }
