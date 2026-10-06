@@ -35,13 +35,82 @@
 .frow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:8px 5px;font-size:12.5px;color:inherit;cursor:pointer}
 .frnew{align-self:flex-start;margin-bottom:4px}
 .dropnav{outline:2px solid var(--accent)!important;background:var(--accent-soft)!important}.blk{cursor:grab}.blk.dragging{cursor:grabbing;z-index:6}.blk .rs{position:absolute;left:0;right:0;bottom:0;height:7px;cursor:ns-resize}
-.cbtn{position:absolute;top:50%;transform:translateY(-50%);right:5px;width:12px;height:12px;border-radius:50%;border:1px solid var(--muted);background:var(--cc,var(--surface));cursor:pointer;padding:0;opacity:0;z-index:3}
-.blk:hover .cbtn,.cbtn:focus-visible{opacity:1}.sw{display:flex;flex-wrap:wrap;gap:8px}.sw button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer}.sw button.on{border-color:var(--fg)}
+.sw{display:flex;flex-wrap:wrap;gap:8px}.sw button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer}.sw button.on{border-color:var(--fg)}
 #corIn{width:44px;height:30px;border:1px solid var(--line);border-radius:6px;padding:2px;background:none;cursor:pointer}.blk.cc{background:color-mix(in srgb,var(--cc) 16%,var(--surface));border-color:var(--cc)}.chip.cc{background:color-mix(in srgb,var(--cc) 18%,var(--surface))}
 .atlas-quick-demand{padding:8px 8px 0}
 .atlas-quick-demand input{width:100%;min-height:34px;background:#fbf9ff;border-color:#e4ddf1}
 .atlas-quick-demand input:focus{border-color:#9674c3;box-shadow:0 0 0 3px rgba(150,116,195,.10)}
 @media(max-width:700px){.frow{grid-template-columns:auto minmax(0,1fr)}.frow .meta{grid-column:2}.md.ctl{min-width:100%}}
+.atlas-context-menu{
+  position:fixed;
+  z-index:120;
+  width:228px;
+  padding:8px;
+  border:1px solid #e1d8ef;
+  border-radius:12px;
+  background:rgba(255,255,255,.98);
+  box-shadow:0 18px 45px rgba(47,31,83,.20);
+  backdrop-filter:blur(14px);
+  color:#2f2551;
+  user-select:none;
+}
+.atlas-context-menu .ctx-title{
+  padding:5px 7px 7px;
+  font-size:11px;
+  font-weight:800;
+  color:#746b8f;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.atlas-context-menu .ctx-label{
+  display:block;
+  padding:3px 7px 6px;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+  color:#9188a7;
+}
+.atlas-context-menu .ctx-colors{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:7px;
+  padding:2px 7px 9px;
+}
+.atlas-context-menu .ctx-color{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  border:2px solid #fff;
+  outline:1px solid rgba(45,35,76,.14);
+  cursor:pointer;
+  transition:transform .14s ease,box-shadow .14s ease;
+}
+.atlas-context-menu .ctx-color:hover{transform:scale(1.12);box-shadow:0 4px 10px rgba(43,28,81,.16)}
+.atlas-context-menu .ctx-color.on{outline:2px solid #2f2551;outline-offset:1px}
+.atlas-context-menu .ctx-sep{height:1px;background:#eee8f5;margin:3px 5px}
+.atlas-context-menu .ctx-action{
+  width:100%;
+  min-height:34px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  padding:7px 8px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  color:#44385f;
+  cursor:pointer;
+  text-align:left;
+}
+.atlas-context-menu .ctx-action:hover{background:#f7f3ff}
+.atlas-context-menu .ctx-action.danger{color:#c83e57}
+.atlas-context-menu .ctx-action.danger:hover{background:#fff0f3}
+.atlas-context-menu .ctx-action svg{width:16px;height:16px;flex:none}
 .cal-new-selection{
   position:absolute;
   left:3px;
@@ -1858,7 +1927,6 @@ function blockHTML(o){
   if(top<0){top=0;cut=true}if(top>H*NH-24){top=H*NH-24;cut=true}
   const h=Math.max(16,Math.min(H*NH-top,o.dur*H/60)),w=100/o.lanes,l=o.lane*w,hh=Math.max(14,h-2),sz=hh<20?' xs':hh>=38?' lg':'';
   return '<div class="blk'+sz+' p'+o.prio+(o.cor?' cc':'')+(o.done?' done':'')+(o.atrasada?' late':'')+(cut?' cut':'')+(o.rec?' rec':'')+'" data-key="'+esc(o.key)+'" title="'+esc(o.desc+' | '+o.p.d+' de '+o.p.n+' tarefas | '+pName(o.resp))+'" style="top:'+(top+1)+'px;height:'+hh+'px;left:calc('+l+'% + 3px);width:calc('+w+'% - 6px);--pc:'+esc(pColor(o.resp))+(o.cor?';--cc:'+esc(o.cor):'')+'">'+
-    '<button type="button" class="cbtn" data-cor title="Mudar cor" aria-label="Mudar cor da demanda"></button>'+
     '<div class="tx"><div class="t">'+esc(o.desc)+'</div>'+(hh>=38?'<div class="m">'+hm(o.start)+' | '+esc(pName(o.resp))+' | <span class="mono">'+o.p.d+'/'+o.p.n+'</span></div>':'')+'</div><div class="rs" title="Arraste para mudar a duração"></div></div>';
 }
 let PEND={};
@@ -1900,13 +1968,8 @@ function bindGrid(body){
   const clock=m=>{const total=H0*60+m,h=Math.floor(total/60),mm=total%60;return pad(h)+':'+pad(mm)};
   const clearSelect=x=>{if(x&&x.ghost)x.ghost.remove();if(x&&x.col)x.col.classList.remove('selecting')};
 
-  body.addEventListener('click',e=>{
-    const b=e.target.closest('[data-cor]');if(!b)return;
-    e.stopPropagation();const o=OCC[b.closest('.blk').dataset.key];if(o)openCor(o.t)
-  });
-
   body.addEventListener('pointerdown',e=>{
-    if(e.button!==0||e.target.closest('[data-cor]'))return;
+    if(e.button!==0)return;
     const blk=e.target.closest('.blk'),col=e.target.closest('.daycol');if(!col)return;
 
     if(blk){
@@ -2020,17 +2083,69 @@ function bindGrid(body){
     render();
   });
 }
-function openCor(t0){
-  const t=S.tarefas[t0.id]||t0,tc=(S.cfg.tipoCores||{})[t.tipo]||null,cur=t.cor||tc;
-  const el=overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Cor da demanda</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="msg"><p><b>'+esc(t.descricao)+'</b></p>'+
-    '<div class="sw">'+CORES.map(c=>'<button type="button" data-c="'+c+'" style="background:'+c+'" class="'+(c===cur?'on':'')+'" aria-label="Cor '+c+'"></button>').join('')+'</div>'+
-    '<div class="row"><label class="chk">Outra cor <input type="color" id="corIn" value="'+esc(cur||'#2f6fe0')+'"></label></div>'+
-    '<div class="row" style="justify-content:space-between"><button type="button" class="btn" id="corTipo">'+(tc?'Usar cor do tipo ('+esc(t.tipo)+')':'Sem cor própria')+'</button></div></div></div>');
-  const save=c=>{const old=t.cor||null;closeLayer();write(t.id,()=>tRef(t.id).update({cor:c})).then(()=>toast(c?'Cor alterada.':'Cor do tipo restaurada.',{label:'Desfazer',fn:()=>write(t.id,()=>tRef(t.id).update({cor:old}))}))};
-  el.querySelector('.sw').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b)save(b.dataset.c)});
-  el.querySelector('#corIn').addEventListener('change',e=>save(e.target.value));
-  el.querySelector('#corTipo').onclick=()=>save(null);
+let DEM_CTX=null;
+function closeDemandContext(){
+  if(DEM_CTX){DEM_CTX.remove();DEM_CTX=null}
 }
+function saveDemandColor(t0,c){
+  const t=S.tarefas[t0.id]||t0,old=t.cor||null;
+  const patch={cor:c};
+  applyOptimisticDemand(t.id,patch);render();
+  write(t.id,()=>tRef(t.id).update(patch)).then(()=>toast(c?'Cor alterada.':'Cor do tipo restaurada.',{
+    label:'Desfazer',fn:()=>{applyOptimisticDemand(t.id,{cor:old});render();write(t.id,()=>tRef(t.id).update({cor:old}))}
+  }));
+}
+function deleteDemandFromContext(o){
+  const t=S.tarefas[o.t.id]||o.t;
+  closeDemandContext();
+  if(isRec(t)&&o.k){
+    const day=fmtDM(parseYmd(o.k));
+    ask('Excluir esta ocorrência ou toda a série de "'+(t.descricao||'')+'"?',[
+      ['Apenas '+day,'danger',()=>{
+        const ex=Object.assign({},t.excecoes||{});
+        ex[o.k]=Object.assign({},ex[o.k]||{},{removida:true});
+        const patch={excecoes:ex,ultimaAtividade:nowIso()};
+        applyOptimisticDemand(t.id,patch);render();
+        write(t.id,()=>tRef(t.id).update(patch)).then(()=>toast('Ocorrência excluída.'));
+      }],
+      ['Toda a série','danger',()=>delDemanda(t)]
+    ]);
+    return;
+  }
+  ask('Excluir a demanda "'+(t.descricao||'')+'"?',[
+    ['Excluir demanda','danger',()=>delDemanda(t)]
+  ]);
+}
+function openDemandContext(o,x,y){
+  closeDemandContext();
+  const t=S.tarefas[o.t.id]||o.t,tc=(S.cfg.tipoCores||{})[t.tipo]||null,cur=t.cor||tc;
+  const m=document.createElement('div');m.className='atlas-context-menu';m.setAttribute('role','menu');
+  m.innerHTML='<div class="ctx-title">'+esc(t.descricao||'Demanda')+'</div>'+
+    '<span class="ctx-label">Cor</span>'+
+    '<div class="ctx-colors">'+CORES.map(c=>'<button type="button" class="ctx-color'+(c===cur?' on':'')+'" data-ctx-color="'+c+'" style="background:'+c+'" aria-label="Usar cor '+c+'"></button>').join('')+'</div>'+
+    '<button type="button" class="ctx-action" data-ctx-default><svg viewBox="0 0 24 24" fill="none"><path d="M5 12a7 7 0 1014 0 7 7 0 10-14 0z" stroke="currentColor" stroke-width="1.7"/><path d="M8 12h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'+(tc?'Usar cor do tipo':'Remover cor própria')+'</button>'+
+    '<div class="ctx-sep"></div>'+
+    '<button type="button" class="ctx-action danger" data-ctx-delete><svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V4h6v3M8 10v8M12 10v8M16 10v8M7 7l1 14h8l1-14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Excluir demanda</button>';
+  document.body.appendChild(m);DEM_CTX=m;
+  const r=m.getBoundingClientRect(),padV=10;
+  m.style.left=Math.max(padV,Math.min(x,innerWidth-r.width-padV))+'px';
+  m.style.top=Math.max(padV,Math.min(y,innerHeight-r.height-padV))+'px';
+  m.addEventListener('click',e=>{
+    const c=e.target.closest('[data-ctx-color]');if(c){closeDemandContext();saveDemandColor(t,c.dataset.ctxColor);return}
+    if(e.target.closest('[data-ctx-default]')){closeDemandContext();saveDemandColor(t,null);return}
+    if(e.target.closest('[data-ctx-delete]')){deleteDemandFromContext(o)}
+  });
+}
+document.addEventListener('contextmenu',e=>{
+  const el=e.target.closest('.blk[data-key],.chip[data-key]');
+  if(!el)return;
+  const o=OCC[el.dataset.key];if(!o)return;
+  e.preventDefault();e.stopPropagation();openDemandContext(o,e.clientX,e.clientY);
+});
+document.addEventListener('pointerdown',e=>{if(DEM_CTX&&!e.target.closest('.atlas-context-menu'))closeDemandContext()},{capture:true});
+document.addEventListener('scroll',closeDemandContext,true);
+addEventListener('resize',closeDemandContext);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDemandContext()});
 function commitDem(o,start,dur){
   const t=S.tarefas[o.t.id]||o.t;dur=Math.max(5,Math.round(dur||o.dur));
   if(+start===+o.start&&dur===o.dur)return;
