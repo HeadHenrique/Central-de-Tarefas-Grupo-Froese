@@ -1316,7 +1316,7 @@ function drawMods(){
 async function genInvite(p){
   if(!p.email){toast('Cadastre o e-mail da pessoa antes de gerar o convite.');return}
   try{await syncPessoaAccess(p)}catch(e){toast('Não foi possível liberar esse e-mail no Supabase.');return}
-  const txt='Olá, '+p.nome+'. Você foi cadastrado na Central de Tarefas Grupo Froese.\n\n1. Abra o link: '+PAGE_URL+'\n2. Clique em "Criar primeiro acesso".\n3. Use exatamente este e-mail: '+p.email+'\n4. Crie uma senha com pelo menos 6 caracteres.\n5. Se receber um e-mail de confirmação do Supabase, confirme e depois volte para entrar.\n\nDepois disso você verá as frentes e tarefas liberadas para o seu perfil.';
+  const txt='Olá, '+p.nome+'. Você foi cadastrado na Central de Tarefas Grupo Froese.\n\n1. Abra o link: '+PAGE_URL+'\n2. Clique em "Criar primeiro acesso".\n3. Use exatamente este e-mail: '+p.email+'\n4. Crie uma senha com pelo menos 6 caracteres.\n5. Depois de criar o acesso, o login fica liberado imediatamente.\n\nDepois disso você verá as frentes e tarefas liberadas para o seu perfil.';
   const num=digits(p.whatsapp);
   const el=overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Convite de '+esc(p.nome)+'</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="md-s"><div class="msg">'+
     '<p class="meta">O acesso foi liberado no Supabase para <b>'+esc(p.email)+'</b>.</p>'+
