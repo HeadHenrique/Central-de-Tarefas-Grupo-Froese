@@ -282,14 +282,13 @@
       <div class="auth-card">
         <div class="auth-brand">Grupo Froese</div>
         <h1>Central de Tarefas</h1>
-        <p>Entre com seu e-mail e senha. No primeiro acesso, crie sua conta usando o mesmo e-mail cadastrado pela administração.</p>
+        <p>Entre com seu e-mail e senha. No primeiro acesso, crie sua conta usando o mesmo e-mail cadastrado pela administração. Não há confirmação por e-mail.</p>
         <form id="authForm">
           <div class="auth-field"><label for="authEmail">E-mail</label><input id="authEmail" type="email" autocomplete="email" required></div>
           <div class="auth-field"><label for="authPass">Senha</label><input id="authPass" type="password" autocomplete="current-password" minlength="6" required></div>
           <div class="auth-actions">
             <button class="auth-btn primary" id="authLogin" type="submit">Entrar</button>
             <button class="auth-btn" id="authSignup" type="button">Criar primeiro acesso</button>
-            <button class="auth-btn" id="authResend" type="button" hidden>Reenviar confirmação</button>
           </div>
           <div class="auth-msg" id="authMsg"></div>
         </form>
@@ -302,69 +301,75 @@
     const msg = gate.querySelector('#authMsg');
     const login = gate.querySelector('#authLogin');
     const signup = gate.querySelector('#authSignup');
-    const resend = gate.querySelector('#authResend');
 
-    const setBusy = v => { login.disabled = v; signup.disabled = v; resend.disabled = v; };
+    const setBusy = v => { login.disabled = v; signup.disabled = v; };
     const show = (text, type) => { msg.textContent = text || ''; msg.className = 'auth-msg' + (type ? ' ' + type : ''); };
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
       show('');
       setBusy(true);
-      const { error } = await client.auth.signInWithPassword({
-        email: emailNorm(email.value),
-        password: pass.value
-      });
-      setBusy(false);
-      if (error) {
-        const code = String(error.code || '').toLowerCase();
-        const message = String(error.message || '').toLowerCase();
+      const em = emailNorm(email.value);
+      const pw = pass.value;
+
+      let result = await client.auth.signInWithPassword({ email: em, password: pw });
+
+      if (result.error) {
+        const code = String(result.error.code || '').toLowerCase();
+        const message = String(result.error.message || '').toLowerCase();
+
         if (code === 'email_not_confirmed' || message.includes('email not confirmed')) {
-          resend.hidden = false;
-          return show('Seu acesso foi criado, mas falta confirmar o e-mail. Confira a caixa de entrada ou clique em "Reenviar confirmação".', 'err');
+          const created = await client.functions.invoke('create-app-user', {
+            body: { email: em, password: pw }
+          });
+          if (!created.error) {
+            result = await client.auth.signInWithPassword({ email: em, password: pw });
+          }
         }
+      }
+
+      setBusy(false);
+      if (result.error) {
         return show('E-mail ou senha inválidos. Confira os dados e tente novamente.', 'err');
       }
       location.reload();
     });
 
     signup.addEventListener('click', async () => {
-      if (!email.value || pass.value.length < 6) {
+      const em = emailNorm(email.value);
+      const pw = pass.value;
+      if (!em || pw.length < 6) {
         show('Informe um e-mail válido e uma senha com pelo menos 6 caracteres.', 'err');
         return;
       }
-      show('');
-      setBusy(true);
-      const { data, error } = await client.auth.signUp({
-        email: emailNorm(email.value),
-        password: pass.value
-      });
-      setBusy(false);
-      if (error) return show(error.message || 'Não foi possível criar o acesso.', 'err');
-      if (data && data.session) {
-        location.reload();
-        return;
-      }
-      resend.hidden = false;
-      show('Acesso criado. Agora confirme o e-mail enviado pelo Supabase. Depois volte aqui e clique em Entrar.', 'ok');
-    });
 
-    resend.addEventListener('click', async () => {
-      const em = emailNorm(email.value);
-      if (!em) {
-        show('Informe seu e-mail primeiro.', 'err');
-        email.focus();
-        return;
-      }
       show('');
       setBusy(true);
-      const { error } = await client.auth.resend({
-        type: 'signup',
-        email: em
+
+      const { data, error } = await client.functions.invoke('create-app-user', {
+        body: { email: em, password: pw }
       });
+
+      if (error || !data || data.error) {
+        setBusy(false);
+        return show((data && data.error) || 'Não foi possível criar o acesso.', 'err');
+      }
+
+      const loginResult = await client.auth.signInWithPassword({
+        email: em,
+        password: pw
+      });
+
       setBusy(false);
-      if (error) return show('Não foi possível reenviar agora. Aguarde alguns segundos e tente novamente.', 'err');
-      show('E-mail de confirmação reenviado. Confira também a caixa de spam ou promoções.', 'ok');
+
+      if (loginResult.error) {
+        if (data.created === false) {
+          return show('Este acesso já existe. Use a senha criada anteriormente e clique em Entrar.', 'err');
+        }
+        return show('Acesso criado, mas não foi possível entrar automaticamente. Clique em Entrar.', 'err');
+      }
+
+      location.reload();
     });
   }
 
