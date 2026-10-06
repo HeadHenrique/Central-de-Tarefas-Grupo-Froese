@@ -501,6 +501,55 @@
   .clr-a{align-items:stretch!important}
   .clr input[data-k=descricao]{flex-basis:100%!important}
 }
+</style><style id="atlas-mobile-drawer-fix">
+@media(max-width:700px){
+  .top.atlas-header{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+
+  .atlas-nav{
+    inset:0 auto 0 0!important;
+    top:0!important;
+    bottom:0!important;
+    left:0!important;
+    right:auto!important;
+    margin:0!important;
+    padding-left:0!important;
+    background:#ffffff!important;
+    background-color:#ffffff!important;
+    opacity:1!important;
+    border-left:0!important;
+    border-top-left-radius:0!important;
+    border-bottom-left-radius:0!important;
+  }
+
+  .atlas-nav::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    background:#ffffff;
+    border-radius:0 18px 18px 0;
+    pointer-events:none;
+  }
+
+  .mobile-nav-head{
+    margin-left:0!important;
+    padding-left:10px!important;
+    background:#ffffff!important;
+  }
+
+  .mobile-nav-account{
+    margin-left:0!important;
+    padding-left:5px!important;
+    background:#ffffff!important;
+  }
+
+  body.mobile-nav-open .atlas-nav{
+    transform:translate3d(0,0,0)!important;
+  }
+}
 </style></head><body>
 <title>Atlas — Central de Tarefas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
