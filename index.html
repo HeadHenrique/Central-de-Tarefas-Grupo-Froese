@@ -1083,7 +1083,7 @@ function renderWho(){
   if(!S.db){w.textContent='Faça login para carregar as tarefas';return}
   const p=S.me.pessoa&&S.pessoas[S.me.pessoa];
   w.innerHTML=p?'<span class="dot" style="background:'+esc(pColor(p.id))+'"></span><b>'+esc(p.nome)+'</b>'+(S.me.owner?' administrador':S.me.admin?' gestor':''):(S.me.owner?'<b>Administrador</b>':'Acesso não vinculado');
-  $('#btnCfg').hidden=!S.me.owner;$('#btnCfg').textContent=S.view==='config'?'Voltar ao painel':'Configurações';$('#btnResumo').hidden=!S.me.admin||S.view==='config';
+  $('#btnCfg').hidden=!S.me.owner;const cfgLabel=$('#btnCfg .setting-label');if(cfgLabel)cfgLabel.textContent=S.view==='config'?'Voltar ao painel':'Configurações';$('#btnResumo').hidden=!S.me.admin||S.view==='config';
   $('#btnNova').hidden=S.view==='config'||!canCreate();$('#btnLogout').hidden=!S.db;
 }
 function fillSelect(sel,opts,val){sel.innerHTML=opts.map(o=>'<option value="'+esc(o[0])+'">'+esc(o[1])+'</option>').join('');sel.value=opts.some(o=>o[0]===val)?val:opts[0][0];return sel.value}
