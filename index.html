@@ -1966,38 +1966,48 @@ function addRegistro(t,itemId,texto){
 }
 
 /* ---------- resumo por IA ---------- */
-let SAMPLE,aiT=null;const aiQ=new Set();
-async function getSample(){if(SAMPLE===undefined){try{SAMPLE=(window.claude&&await claude.use('sample'))||null}catch(e){SAMPLE=null}}return SAMPLE}
-function queueResumo(id){aiQ.add(id);clearTimeout(aiT);aiT=setTimeout(runResumos,2500)}
+let aiT=null;const aiQ=new Set();
+function queueResumo(id){aiQ.add(id);clearTimeout(aiT);aiT=setTimeout(runResumos,700)}
 async function runResumos(){
-  const s=await getSample();if(!s){aiQ.clear();return}
-  for(const id of[...aiQ]){aiQ.delete(id);const ok=await gerarResumo(id,s);if(ok===false){aiQ.clear();break}}
+  for(const id of [...aiQ]){aiQ.delete(id);await gerarResumo(id)}
 }
-async function gerarResumo(id,s){
+async function gerarResumo(id){
   const t=S.tarefas[id];if(!t)return true;
-  let regs=[];try{const q=await S.db.collection('registros').where('frenteId','==',id).get();regs=q.docs.map(d=>d.data()).sort((a,b)=>a.em<b.em?1:-1).slice(0,6)}catch(e){}
   const now=new Date(),t0=sod(now);
-  let k=null;if(isRec(t)){const ds=demandaDates(t,addDays(t0,-60),addDays(t0,400));const p=ds.find(d=>!demandaDone(t,d.k));k=p?p.k:null}
-  const prazo=k?parseYmd(k):parseLocal(t.inicio);
-  const linhas=(t.checklist||[]).map(it=>{const o=mkItem(t,it,k);return '- '+(o.ap?'aprovação ':'')+(o.done?(o.ap?'aprovada':'feita'):o.atrasada?'atrasada':'pendente')+(o.dev&&!o.done?' (devolvida: '+(o.dev.obs||'')+')':'')+' | '+it.descricao+' | data '+fmtDM(o.start)+' | responsável '+pName(o.resp)}).join('\n');
-  const rg=regs.map(r=>'- '+fmtDM(new Date(r.em))+' '+pName(r.por)+' sobre "'+r.itemDesc+'": '+r.texto).join('\n')||'- nenhum';
-  const prompt='Você resume o status de uma demanda de trabalho administrativa de uma empresa, em português do Brasil.\n'+
-    'Responda com UMA frase curtíssima, de no máximo 14 palavras, dizendo o status e o próximo passo concreto para concluir a demanda.\n'+
-    'Sem emojis, sem aspas, sem setas, sem markdown, sem símbolos especiais e sem ponto final. Use nomes de pessoas quando ajudar.\n\n'+
-    'Hoje: '+fmtD(now)+'\nFrente: '+t.descricao+'\nResponsável: '+pName(t.responsavel)+'\nPrazo: '+(prazo?fmtD(prazo):'sem prazo')+'\n\nTarefas:\n'+linhas+'\n\nRegistros recentes:\n'+rg;
-  try{
-    const r=await s(prompt,{modelTier:'quick',cache:false});
-    const texto=String(r.text||'').split('\n').map(x=>x.trim()).filter(Boolean)[0]||'';
-    const limpo=texto.replace(/["“”*_#>]/g,'').replace(/\.$/,'').slice(0,160);
-    if(limpo)await write(id,()=>tRef(id).update({resumoIA:{texto:limpo,em:nowIso()}}));
-    return true;
-  }catch(e){if(e&&(e.code==='not_granted'||e.code==='rate_limited')){if(e.code==='not_granted')SAMPLE=null;toast(e.code==='rate_limited'?'Muitos resumos de uma vez. Tente de novo em instantes.':'Resumos por IA não autorizados nesta visualização.');return false}return true}
+  let k=null;
+  if(isRec(t)){
+    const ds=demandaDates(t,addDays(t0,-60),addDays(t0,400));
+    const p=ds.find(d=>!demandaDone(t,d.k));k=p?p.k:null;
+  }
+  const itens=(t.checklist||[]).map(it=>mkItem(t,it,k));
+  const pend=itens.filter(o=>!o.done);
+  const late=pend.filter(o=>o.atrasada);
+  const atualIdx=etapaAtual(t,k);
+  const atual=atualIdx>=0?itens[atualIdx]:null;
+  let texto='';
+  if(!pend.length)texto='Demanda concluída';
+  else if(atual&&atual.ap){
+    const nome=pName(atual.resp);
+    texto='Aguardando aprovação de '+nome+' em '+(atual.item.descricao||'etapa');
+  }else if(late.length){
+    const o=late[0];
+    texto=late.length+' tarefa'+(late.length>1?'s':'')+' atrasada'+(late.length>1?'s':'')+'; próximo passo: '+o.desc+' com '+pName(o.resp);
+  }else if(atual){
+    texto='Próximo passo: '+atual.desc+' com '+pName(atual.resp)+' até '+fmtDM(atual.start);
+  }else{
+    texto='Demanda em andamento com '+pend.length+' tarefa'+(pend.length>1?'s':'')+' pendente'+(pend.length>1?'s':'');
+  }
+  texto=texto.replace(/\s+/g,' ').trim().slice(0,160);
+  await write(id,()=>tRef(id).update({resumoIA:{texto,em:nowIso()}}));
+  return true;
 }
 $('#btnAI').onclick=async()=>{
-  const s=await getSample();if(!s){toast('Resumos por IA indisponíveis nesta visualização.');return}
-  const stale=FE.filter(e=>!e.done).map(e=>e.t).filter(t=>!t.resumoIA||new Date(t.resumoIA.em)<new Date(t.ultimaAtividade||t.criadoEm||0)).slice(0,15);
+  const stale=FE.filter(e=>!e.done).map(e=>e.t).filter(t=>!t.resumoIA||new Date(t.resumoIA.em)<new Date(t.ultimaAtividade||t.criadoEm||0)).slice(0,30);
   if(!stale.length){toast('Todos os resumos estão atualizados.');return}
-  toast('Gerando '+stale.length+' resumo(s)...');stale.forEach(t=>aiQ.add(t.id));runResumos();
+  toast('Atualizando '+stale.length+' resumo(s)...');
+  stale.forEach(t=>aiQ.add(t.id));
+  await runResumos();
+  toast('Resumos atualizados.');
 };
 
 /* ---------- anexos ---------- */
@@ -2331,7 +2341,7 @@ function openDemanda(opt){
   const title=(isNew?'Nova demanda':'Demanda'+(k?' de '+fmtD(parseYmd(k)):''))+(gNome?' | Frente: '+gNome:'');
   const ai=t&&t.resumoIA&&t.resumoIA.texto;
   const el=overlay('<div class="md" role="dialog" aria-modal="true" aria-labelledby="mdT"><form id="tf" novalidate style="display:contents"><div class="md-h"><h2 id="mdT">'+esc(title)+'</h2><span class="meta" id="m-sum"></span><button type="button" class="btn sm" data-x>Fechar</button></div><div class="md-s"><div class="md-b compact">'+
-    (t?'<div class="full ai"><span class="lb">Resumo IA</span><span id="m-ai">'+(ai?esc(ai):'Ainda não gerado')+'</span><button type="button" class="btn sm" id="m-ai-btn">Atualizar resumo</button></div>':'')+
+    (t?'<div class="full ai"><span class="lb">Resumo inteligente</span><span id="m-ai">'+(ai?esc(ai):'Ainda não gerado')+'</span><button type="button" class="btn sm" id="m-ai-btn">Atualizar resumo</button></div>':'')+
     '<div class="fld c3"><label for="m-desc">Descrição da demanda</label><input type="text" id="m-desc" required placeholder="Ex.: Comprar cadeiras para a sala de reunião" value="'+esc(v.descricao)+'"></div>'+
     '<div class="fld"><label for="m-grupo">Frente</label><select id="m-grupo"><option value="">Selecione</option>'+Object.values(S.frentes).filter(f=>!f.encerrada||f.id===gid0).sort((a,b)=>a.nome.localeCompare(b.nome)).map(f=>'<option value="'+esc(f.id)+'" '+(f.id===gid0?'selected':'')+'>'+esc(f.nome)+'</option>').join('')+'</select></div>'+
     '<div class="full ctlrow" id="m-ctlvis" hidden></div>'+
@@ -2515,8 +2525,7 @@ function openDemanda(opt){
     },()=>{hist.innerHTML='<div class="meta">Não foi possível carregar o histórico.</div>'});
     const u2=S.db.collection('anexos').where('frenteId','==',t.id).onSnapshot(s=>{ANX=s.docs.map(d=>Object.assign({id:d.id},d.data()));paintAnx()},()=>{});
     cleanup=()=>{u1();u2()};
-    $m('#m-ai-btn').onclick=async()=>{const s=await getSample();if(!s){toast('Resumos por IA indisponíveis nesta visualização.');return}
-      const sp=$m('#m-ai');sp.textContent='Gerando resumo...';await gerarResumo(t.id,s);const tt=S.tarefas[t.id];sp.textContent=(tt&&tt.resumoIA&&tt.resumoIA.texto)||'Não foi possível gerar agora.'};
+    $m('#m-ai-btn').onclick=async()=>{const sp=$m('#m-ai');sp.textContent='Atualizando resumo...';await gerarResumo(t.id);const tt=S.tarefas[t.id];sp.textContent=(tt&&tt.resumoIA&&tt.resumoIA.texto)||'Não foi possível atualizar agora.'};
   }
   const read=()=>{
     const start=$m('#m-data').value?curStart():null,rec=readRec(),resp=$m('#m-resp').value,isR=rec.freq!=='none';
