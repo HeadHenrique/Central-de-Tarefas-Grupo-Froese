@@ -304,14 +304,14 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<div class="wrap">
+<div class="wrap" hidden>
   <header class="top">
     <div><h1>Central de Tarefas</h1><div class="sub">Grupo Froese</div></div>
     <div class="grow"></div>
     <div class="who" id="who">Conectando...</div>
     <button class="btn" id="btnResumo" type="button" hidden>Resumo do dia</button>
     <button class="btn" id="btnCfg" type="button" hidden>Configurações</button>
-    <button class="btn pri" id="btnNova" type="button">Nova frente</button>
+    <button class="btn" id="btnLogout" type="button" hidden>Sair</button>\n    <button class="btn pri" id="btnNova" type="button">Nova frente</button>
   </header>
 
   <div id="painel">
@@ -373,16 +373,13 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
   <div id="cfgView" hidden></div>
 </div>
 <div id="layer"></div>
-<div id="layer2"></div>
-
-<script>
-(function(){
+<div id="layer2"></div>\n\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="./supabase-adapter.js"></script>\n<script>\n(function(){
 const DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const PRIOS={1:'Baixa',2:'Média',3:'Alta',4:'Crítica'};
 const RECS={none:'Não repete',daily:'Diariamente',weekdays:'Dias úteis (seg a sex)',weekly:'Semanalmente',monthly:'Mensalmente',yearly:'Anualmente'};
 const UNIT={daily:['dia','dias'],weekly:['semana','semanas'],monthly:['mês','meses'],yearly:['ano','anos']};
-const PAGE_URL='https://claude.ai/artifact/7JsGXXZZq4AQhXayYfZYEL';
+const PAGE_URL=location.origin;
 const H0=8,H1=22,NH=H1-H0;
 const CFG_DEF={tipos:['Comercial','Financeiro','Operacional','Administrativo','Pessoal'],
   modelos:[{id:'cotacao',nome:'Cotação e Compra',itens:[{descricao:'Cotação',dias:0,tipo:'execucao',cargoId:'assist-adm'},{descricao:'Aprovação da compra',dias:1,tipo:'aprovacao',cargoId:'g-fin',alcadas:[{min:5000,cargoId:'diretoria'}]},{descricao:'Compra',dias:2,tipo:'execucao',cargoId:'assist-adm'},{descricao:'Acompanhamento',dias:3,tipo:'execucao',cargoId:'assist-adm'},{descricao:'Entrega',dias:5,tipo:'execucao',cargoId:'assist-adm'},{descricao:'Instalação',dias:6,tipo:'execucao',cargoId:'assist-adm'}]}],
@@ -566,8 +563,7 @@ function renderWho(){
   const p=S.me.pessoa&&S.pessoas[S.me.pessoa];
   w.innerHTML=p?'<span class="dot" style="background:'+esc(pColor(p.id))+'"></span><b>'+esc(p.nome)+'</b>'+(S.me.owner?' administrador':S.me.admin?' gestor':''):(S.me.owner?'<b>Administrador</b>':'Acesso não vinculado');
   $('#btnCfg').hidden=!S.me.owner;$('#btnCfg').textContent=S.view==='config'?'Voltar ao painel':'Configurações';$('#btnResumo').hidden=!S.me.admin||S.view==='config';
-  $('#btnNova').hidden=S.view==='config'||!canCreate();
-}
+  $('#btnNova').hidden=S.view==='config'||!canCreate();$('#btnLogout').hidden=!S.db;\n}
 function fillSelect(sel,opts,val){sel.innerHTML=opts.map(o=>'<option value="'+esc(o[0])+'">'+esc(o[1])+'</option>').join('');sel.value=opts.some(o=>o[0]===val)?val:opts[0][0];return sel.value}
 function renderFilters(){
   S.f.resp=fillSelect($('#fResp'),S.me.admin?[['todos','Todos os responsáveis']].concat(activeP().map(p=>[p.id,p.nome])):[['todos','Minhas e liberadas'],['meu','Somente minhas']],S.f.resp);
@@ -1201,6 +1197,13 @@ $('#btnResumo').onclick=openResumoDia;
 async function hashCode(pid,code){const norm=String(code).toUpperCase().replace(/[^A-Z0-9]/g,'');
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pid+':'+norm));return[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 const saveCfg=()=>write('cfg',()=>S.db.doc('config/geral').set(clone(S.cfg)));
+async function syncPessoaAccess(p,oldEmail){
+  if(!window.froeseBackend||!p)return;
+  const email=normEmail(p.email);if(!email)return;
+  if(oldEmail&&normEmail(oldEmail)!==email&&window.froeseBackend.removeAccess){try{await window.froeseBackend.removeAccess(oldEmail)}catch(e){}}
+  const role=p.dono?'admin':p.perfil==='gestor'?'gestor':'colaborador';
+  await window.froeseBackend.syncAccess(email,role,p.ativo!==false);
+}
 let MODS=null;
 function openConfig(){S.view='config';MODS=clone(S.cfg.modelos);$('#painel').hidden=true;const lk=$('#linkBox');if(lk)lk.hidden=true;$('#cfgView').hidden=false;renderWho();renderConfig();scrollTo(0,0)}
 function closeConfig(){S.view='main';$('#cfgView').hidden=true;$('#painel').hidden=false;render()}
@@ -1209,8 +1212,8 @@ function renderConfig(){
   const ps=Object.values(S.pessoas).sort((a,b)=>(b.dono?1:0)-(a.dono?1:0)||a.nome.localeCompare(b.nome));
   v.innerHTML='<div class="cfg"><div class="cfg-h"><h2>Configurações</h2></div>'+
   '<section class="panel cfgsec"><h3>Usuários</h3>'+
-    '<div class="help"><b>Como dar acesso a uma pessoa</b><ol><li>Cadastre o nome, o e-mail da conta Claude e o WhatsApp.</li><li>No menu Compartilhar desta página, convide o mesmo e-mail com permissão de edição. O Claude envia o e-mail de acesso.</li><li>Clique em Gerar convite e envie o texto pelo WhatsApp, com o link e o código de primeiro acesso.</li><li>No primeiro acesso, a pessoa digita o código uma única vez. A coluna Acesso mostra com qual conta Claude ela entrou.</li></ol></div>'+
-    '<div class="eqt"><table><thead><tr><th>Nome</th><th>E-mail da conta Claude</th><th>WhatsApp</th><th>Perfil</th><th>Cor</th><th>Horas/sem</th><th>Status</th><th>Acesso</th><th>Cadastro ativo</th></tr></thead><tbody id="uBody">'+
+    '<div class="help"><b>Como dar acesso a uma pessoa</b><ol><li>Cadastre o nome, o e-mail de acesso e o WhatsApp.</li><li>O e-mail cadastrado passa a ser autorizado no Supabase.</li><li>Clique em Gerar convite e envie o link de acesso pelo WhatsApp.</li><li>No primeiro acesso, a pessoa cria a própria senha usando exatamente o e-mail cadastrado.</li></ol></div>'+
+    '<div class="eqt"><table><thead><tr><th>Nome</th><th>E-mail de acesso</th><th>WhatsApp</th><th>Perfil</th><th>Cor</th><th>Horas/sem</th><th>Status</th><th>Acesso</th><th>Cadastro ativo</th></tr></thead><tbody id="uBody">'+
     ps.map(p=>'<tr data-id="'+esc(p.id)+'"><td><input type="text" data-f="nome" value="'+esc(p.nome)+'" aria-label="Nome"></td>'+
       '<td><input type="email" data-f="email" value="'+esc(p.email||'')+'" placeholder="nome@email.com" aria-label="E-mail"></td>'+
       '<td><input type="tel" data-f="whatsapp" value="'+esc(p.whatsapp||'')+'" placeholder="55 65 99999-0000" aria-label="WhatsApp"></td>'+
@@ -1250,14 +1253,16 @@ function renderConfig(){
     if(f==='nome'){val=val.trim();if(!val)return}
     if(f==='whatsapp'){val=val.replace(/\+/g,'').trim();e.target.value=val}
     if(f==='email'){val=normEmail(val);const dup=Object.values(S.pessoas).find(p=>p.id!==id&&val&&normEmail(p.email)===val);if(dup){toast('Este e-mail já está cadastrado para '+dup.nome+'.');return}}
-    write('p:'+id,()=>S.db.doc('pessoas/'+id).update({[f]:val})).then(()=>toast('Salvo.'))});
+    const prev=Object.assign({},S.pessoas[id]),next=Object.assign({},prev,{[f]:val});
+    write('p:'+id,()=>S.db.doc('pessoas/'+id).update({[f]:val})).then(()=>syncPessoaAccess(next,f==='email'?prev.email:null).catch(()=>toast('Acesso salvo no painel, mas não sincronizou no login.'))).then(()=>toast('Salvo.'))});
   ub.addEventListener('click',e=>{const tr=e.target.closest('tr');if(!tr)return;const p=S.pessoas[tr.dataset.id];if(!p)return;
     if(e.target.matches('[data-unlink]'))ask('Desvincular o acesso de '+p.nome+'? A pessoa precisará de um novo convite.',[['Desvincular','danger',()=>write('p:'+p.id,()=>S.db.doc('pessoas/'+p.id).update({userId:null})).then(renderConfig)]]);
     if(e.target.matches('[data-inv]'))genInvite(p)});
   $('#addP').addEventListener('submit',e=>{e.preventDefault();const n=$('#novoNome').value.trim(),em=normEmail($('#novoEmail').value),wa=$('#novoWa').value.replace(/\+/g,'').trim();if(!n)return;
     if(em&&Object.values(S.pessoas).some(p=>normEmail(p.email)===em)){toast('Este e-mail já está cadastrado.');return}
     const ref=S.db.collection('pessoas').doc(),cores=['#4573db','#17794a','#cf8410','#8a4fd6','#cf3a37','#0f8fa3','#b0458f','#5d7a1f'];
-    write('p:'+ref.id,()=>ref.set({nome:n,email:em||null,whatsapp:wa||null,perfil:'colaborador',cor:cores[Object.keys(S.pessoas).length%cores.length],capacidade:40,ativo:true,userId:null,dono:false})).then(()=>{toast('Usuário cadastrado. Agora gere o convite.');renderConfig()})});
+    const np={nome:n,email:em||null,whatsapp:wa||null,perfil:'colaborador',cor:cores[Object.keys(S.pessoas).length%cores.length],capacidade:40,ativo:true,userId:null,dono:false};
+    write('p:'+ref.id,()=>ref.set(np)).then(()=>syncPessoaAccess(np).catch(()=>toast('Usuário cadastrado, mas o acesso não sincronizou no Supabase.'))).then(()=>{toast('Usuário cadastrado. Agora gere o convite.');renderConfig()})});
   const cb=$('#cgBody');
   cb.addEventListener('change',e=>{const tr=e.target.closest('tr'),f=e.target.dataset.c;if(!tr||!f)return;const c=S.cfg.cargos[+tr.dataset.ci];let val=e.target.value;if(f==='nome'){val=val.trim();if(!val)return}else val=val||null;
     c[f]=val;saveCfg().then(()=>{toast('Cargo salvo.');renderConfig()})});
@@ -1302,25 +1307,23 @@ function drawMods(){
     else if(e.target.matches('[data-arm]')){m.itens[ii].alcadas.splice(+row.dataset.ai,1);drawMods()}};
 }
 async function genInvite(p){
-  const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=crypto.getRandomValues(new Uint8Array(8));let c='';r.forEach(x=>c+=A[x%A.length]);
-  const code=c.slice(0,4)+'-'+c.slice(4),h=await hashCode(p.id,code);
-  await write('p:'+p.id,()=>S.db.doc('pessoas/'+p.id).update({codigoHash:h,codigoCriadoEm:nowIso()}));
-  const txt='Olá, '+p.nome+'. Você foi cadastrado na Central de Tarefas Grupo Froese.\n\n1. Abra o link: '+PAGE_URL+'\n2. Entre com a sua conta Claude'+(p.email?' ('+p.email+')':'')+'. Se ainda não tiver conta, crie com esse mesmo e-mail.\n3. Na primeira vez, informe o código de primeiro acesso: '+code+'\n\nDepois disso você verá as suas frentes e tarefas.';
+  if(!p.email){toast('Cadastre o e-mail da pessoa antes de gerar o convite.');return}
+  try{await syncPessoaAccess(p)}catch(e){toast('Não foi possível liberar esse e-mail no Supabase.');return}
+  const txt='Olá, '+p.nome+'. Você foi cadastrado na Central de Tarefas Grupo Froese.\n\n1. Abra o link: '+PAGE_URL+'\n2. Clique em "Criar primeiro acesso".\n3. Use exatamente este e-mail: '+p.email+'\n4. Crie uma senha com pelo menos 6 caracteres.\n5. Se receber um e-mail de confirmação do Supabase, confirme e depois volte para entrar.\n\nDepois disso você verá as frentes e tarefas liberadas para o seu perfil.';
   const num=digits(p.whatsapp);
   const el=overlay('<div class="md sm" role="dialog" aria-modal="true"><div class="md-h"><h2>Convite de '+esc(p.nome)+'</h2><button class="btn sm" data-x type="button">Fechar</button></div><div class="md-s"><div class="msg">'+
-    '<p>Código de primeiro acesso: <b class="mono" style="font-size:18px">'+code+'</b></p>'+
-    '<p class="meta">O código aparece só agora. Se perder, gere outro; o anterior deixa de valer. Lembre de convidar '+esc(p.email||'o e-mail da pessoa')+' no menu Compartilhar, com permissão de edição.</p>'+
-    '<textarea id="invTxt" readonly style="width:100%;min-height:160px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface-2)">'+esc(txt)+'</textarea>'+
+    '<p class="meta">O acesso foi liberado no Supabase para <b>'+esc(p.email)+'</b>.</p>'+
+    '<textarea id="invTxt" readonly style="width:100%;min-height:190px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface-2)">'+esc(txt)+'</textarea>'+
     '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="invCopy">Copiar texto</button>'+(num?'<a class="btn pri" target="_blank" rel="noopener" href="https://wa.me/'+num+'?text='+encodeURIComponent(txt)+'">Enviar no WhatsApp</a>':'')+'</div></div></div></div>');
   onClose=renderConfig;
   el.querySelector('#invCopy').onclick=()=>{const ta=el.querySelector('#invTxt');const done=()=>toast('Texto copiado.');
     const fb=()=>{ta.focus();ta.select();try{document.execCommand('copy');done()}catch(x){toast('Selecione o texto e copie manualmente.')}};
     try{navigator.clipboard.writeText(txt).then(done,fb)}catch(x){fb()}};
 }
-$('#btnCfg').onclick=()=>{if(S.view==='config')closeConfig();else openConfig()};
+$('#btnCfg').onclick=()=>{if(S.view==='config')closeConfig();else openConfig()};\n$('#btnLogout').onclick=()=>{if(window.froeseBackend)window.froeseBackend.signOut()};
 
 /* ---------- primeiro acesso ---------- */
-function linkPessoa(p){return write('p:'+p.id,()=>S.db.doc('pessoas/'+p.id).update({userId:S.me.id,codigoHash:null,vinculadoEm:nowIso()}))}
+function linkPessoa(p){if(window.froeseBackend&&window.froeseBackend.linkPerson)return window.froeseBackend.linkPerson(p.id);return write('p:'+p.id,()=>S.db.doc('pessoas/'+p.id).update({userId:S.me.id,vinculadoEm:nowIso()}))}
 function renderLink(){
   $('#painel').hidden=true;let box=$('#linkBox');
   if(!box){box=document.createElement('div');box.id='linkBox';box.className='panel';$('#painel').after(box)}
@@ -1351,23 +1354,24 @@ setInterval(()=>{if(!S.dragging&&!$('#layer').firstChild&&S.view==='main')render
 
 /* ---------- inicialização ---------- */
 function fail(){
-  $('#cal').innerHTML='<div class="empty"><b>Você não está conectado ao Claude nesta janela</b>Clique em Entrar, no canto superior direito, com a conta que recebeu o convite. Sem login as frentes não carregam.</div>';
-  $('#frl').innerHTML='<div class="empty">Faça login para ver as frentes.</div>';$('#tkl').innerHTML='';renderWho();
+  const g=document.querySelector('#authGate');if(g)g.hidden=false;
+  const w=document.querySelector('.wrap');if(w)w.hidden=true;
 }
 render();
 async function start(){
-  if(!window.claude||!window.claude.use){fail();return}
-  const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);
-  if(!db){fail();return}
-  S.db=db;S.user=user;
-  if(user){S.me.id=await user.id();S.me.owner=await user.isOwner()}
-  S.me.admin=S.me.owner;
+  const back=window.froeseBackend;
+  if(!back){fail();return}
+  const ctx=await back.init();
+  if(!ctx||!ctx.authenticated)return;
+  S.db=ctx.db;S.user=ctx.user;S.me.id=ctx.userId;S.me.owner=ctx.role==='admin';S.me.admin=ctx.role==='admin'||ctx.role==='gestor';S.authEmail=ctx.email;
   render();
+  const db=S.db;
   db.collection('pessoas').onSnapshot(s=>{
     S.pessoas={};s.docs.forEach(d=>{S.pessoas[d.id]=Object.assign({id:d.id},d.data())});S.loaded.p=true;
-    const mine=Object.values(S.pessoas).find(p=>S.me.id&&p.userId===S.me.id);S.me.pessoa=mine?mine.id:null;
-    S.me.admin=S.me.owner||!!(mine&&mine.perfil==='gestor');
-    if(!mine&&S.me.owner&&S.me.id&&!S.linking){const dono=Object.values(S.pessoas).find(p=>p.dono&&!p.userId);if(dono){S.linking=true;linkPessoa(dono)}}
+    const mine=Object.values(S.pessoas).find(p=>(S.me.id&&p.userId===S.me.id)||(S.authEmail&&normEmail(p.email)===normEmail(S.authEmail)));
+    S.me.pessoa=mine?mine.id:null;
+    S.me.admin=S.me.owner||ctx.role==='gestor'||!!(mine&&mine.perfil==='gestor');
+    if(mine&&mine.userId!==S.me.id&&!S.linking&&back.linkPerson){S.linking=true;back.linkPerson(mine.id).catch(()=>{}).finally(()=>{S.linking=false})}
     render();
   },()=>toast('Conexão com a equipe interrompida. Recarregue a página.'));
   db.collection('tarefas').onSnapshot(s=>{S.tarefas={};s.docs.forEach(d=>{S.tarefas[d.id]=Object.assign({id:d.id},d.data())});S.loaded.t=true;render()},
@@ -1377,7 +1381,7 @@ async function start(){
     if(Array.isArray(d.cargos))c.cargos=clone(d.cargos);if(d.obrig)Object.assign(c.obrig,d.obrig);if(d.perms)Object.assign(c.perms,d.perms);if(d.diasParada)c.diasParada=d.diasParada;
     S.cfg=c;render()},()=>{});
 }
-start().catch(fail);
+start().catch(e=>{console.error(e);fail()});
 })();
 </script>
 
