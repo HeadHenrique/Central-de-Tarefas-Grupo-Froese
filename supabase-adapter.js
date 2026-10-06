@@ -386,7 +386,7 @@
     const gate = document.getElementById('authGate');
     gate.innerHTML = `
       <div class="auth-card auth-denied">
-        <div class="auth-brand">Grupo Froese</div>
+        <div class="auth-brand">Atlas</div>
         <strong>Acesso não liberado</strong>
         <p>O e-mail <b>${String(email || '')}</b> entrou no Supabase, mas ainda não está autorizado no Atlas.</p>
         <button class="auth-btn" id="authExit" type="button">Sair</button>
