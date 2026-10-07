@@ -727,6 +727,63 @@
   #mobileWorkPanel[data-view="overview"] #secTk,
   #mobileWorkPanel[data-view="overview"] #demandasSec{display:none!important}
 }
+</style><style id="atlas-original-header-fix">
+@media(min-width:701px){
+  .top.atlas-header{
+    display:flex!important;
+    align-items:center!important;
+    flex-wrap:nowrap!important;
+    gap:10px!important;
+    padding:9px 12px!important;
+  }
+  .atlas-header>.atlas-nav{display:none!important}
+  .atlas-header>.atlas-header-divider{display:none!important}
+  .atlas-header>.grow{display:block!important;flex:1 1 auto!important}
+  .atlas-header .atlas-brand{min-width:150px!important;flex:none!important}
+  .atlas-header .atlas-brand-logo{width:145px!important;max-width:none!important}
+  .atlas-header-actions{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+    gap:8px!important;
+    margin-left:auto!important;
+    min-width:0!important;
+  }
+  #btnHeaderSearch{display:none!important}
+  .atlas-original-head-btn{
+    min-height:42px!important;
+    padding:0 14px!important;
+    border:1px solid #e4dcef!important;
+    border-radius:11px!important;
+    background:#fff!important;
+    color:#34295e!important;
+    box-shadow:none!important;
+    font-size:13px!important;
+    font-weight:700!important;
+    white-space:nowrap!important;
+  }
+  .atlas-original-head-btn:hover{
+    border-color:#bba6e7!important;
+    background:#faf7ff!important;
+    color:#7040d2!important;
+  }
+  .atlas-header .new-demand{
+    min-height:42px!important;
+    padding:0 17px!important;
+    border-radius:11px!important;
+    white-space:nowrap!important;
+  }
+  .atlas-header .notif-wrap{order:0}
+  .atlas-header .profile-wrap{order:1}
+  #btnResumoDesktop{order:2}
+  #btnCfgDesktop{order:3}
+  #btnCtlDesktop{order:4}
+  #btnNovoCtlDesktop{order:5}
+  #btnNova{order:6}
+}
+@media(max-width:700px){
+  .atlas-original-head-btn{display:none!important}
+}
 </style></head><body>
 <title>Atlas — Central de Tarefas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1873,7 +1930,7 @@ select.f:focus,input.f:focus{border-color:#a586e5 !important;box-shadow:0 0 0 3p
         </div>
       </div>
 
-      <button class="btn pri new-demand" id="btnNova" type="button"><span>Nova demanda</span></button>
+      <button class="btn atlas-original-head-btn" id="btnResumoDesktop" type="button">Equipe hoje</button> <button class="btn atlas-original-head-btn" id="btnCfgDesktop" type="button">Configurações</button> <button class="btn atlas-original-head-btn" id="btnCtlDesktop" type="button">Controles</button> <button class="btn atlas-original-head-btn" id="btnNovoCtlDesktop" type="button">Novo controle</button> <button class="btn pri new-demand" id="btnNova" type="button"><span>Nova demanda</span></button>
     </div>
 
     <div class="who" id="who" hidden>Conectando...</div>
@@ -1999,7 +2056,7 @@ const normEmail=e=>(e||'').trim().toLowerCase();
 const digits=s=>(s||'').replace(/\D/g,'');
 
 const S={frentes:{},frSubs:new Set(),controles:{},ctlSubs:new Set(),db:null,user:null,me:{id:null,owner:false,admin:false,pessoa:null},tarefas:{},pessoas:{},cfg:clone(CFG_DEF),loaded:{t:false,p:false},
-  view:'main',mode:(innerWidth<700?'dia':'7d'),date:sod(new Date()),f:{resp:'todos',tipo:'',prio:''},busca:'',frFiltro:'pendentes',frFiltroF:'pendentes',frModo:'d',tkFiltro:'pendentes',tkSt:'pendentes',
+  view:'main',mode:(innerWidth<700?'dia':'7d'),date:sod(new Date()),f:{resp:'todos',tipo:'',prio:''},busca:'',frFiltro:'pendentes',frFiltroF:'todas',frModo:'d',tkFiltro:'pendentes',tkSt:'pendentes',
   dn:{per:'semana',de:null,ate:null},dragging:false,pending:false,linking:false,hour:40};
 try{const v=JSON.parse(localStorage.getItem('ct-view')||'null');if(v&&v.mode)S.mode=v.mode}catch(e){}
 if(innerWidth<=700)S.mode='dia';
@@ -2191,7 +2248,7 @@ function renderWho(){
 
   $('#btnCfg').hidden=!S.me.owner;const cfgLabel=$('#btnCfg .setting-label');if(cfgLabel)cfgLabel.textContent=S.view==='config'?'Voltar ao painel':'Configurações';$('#btnResumo').hidden=!S.me.admin||S.view==='config';
   $('#btnNova').hidden=S.view==='config'||!canCreate();$('#btnLogout').hidden=!S.db;
-  const bf=$('#btnFrentes'),bc=$('#btnCtl'),bnc=$('#btnNovoCtl');if(bf)bf.hidden=true;if(bc)bc.hidden=S.view==='config'||!S.db;if(bnc)bnc.hidden=S.view==='config'||!S.db;
+  const bf=$('#btnFrentes'),bc=$('#btnCtl'),bnc=$('#btnNovoCtl');if(bf)bf.hidden=true;if(bc)bc.hidden=S.view==='config'||!S.db;if(bnc)bnc.hidden=S.view==='config'||!S.db; const brd=$('#btnResumoDesktop'),bcd=$('#btnCfgDesktop'),btd=$('#btnCtlDesktop'),bncd=$('#btnNovoCtlDesktop');if(brd)brd.hidden=$('#btnResumo').hidden;if(bcd){bcd.hidden=$('#btnCfg').hidden;bcd.textContent=S.view==='config'?'Voltar ao painel':'Configurações'}if(btd)btd.hidden=bc?bc.hidden:true;if(bncd)bncd.hidden=bnc?bnc.hidden:true;
 }
 const ATLAS_NOTIF={items:[],timer:null,audio:null,audioUnlocked:false,audioUnlocking:false};
 function notifSent(){
@@ -2499,7 +2556,7 @@ $('#qk').addEventListener('submit',e=>{e.preventDefault();const inp=$('#qkIn'),t
   inp.value=''});
 $('#frFiltro').onchange=e=>{if(S.frModo==='f')S.frFiltroF=e.target.value;else S.frFiltro=e.target.value;render()};
 $('#cal').addEventListener('click',e=>{if(e.target.closest('[data-atr]'))abrirAtrasadas()});
-$('#frSeg').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.frModo=b.dataset.v;render()});
+$('#frSeg').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;const next=b.dataset.v;if(next==='f'&&S.frModo!=='f')S.frFiltroF='todas';S.frModo=next;render()});
 
 /* ---------- tarefas ---------- */
 function renderTarefas(){
@@ -3232,7 +3289,7 @@ function frInfo(f){
 function frList(){return Object.values(S.frentes||{}).filter(frPode).map(f=>Object.assign({f},frInfo(f)))
   .sort((a,b)=>(!!a.f.encerrada-!!b.f.encerrada)||((a.d===a.n&&a.n)-(b.d===b.n&&b.n))||(b.late-a.late)||((a.prox?+a.prox.prazo:9e15)-(b.prox?+b.prox.prazo:9e15)))}
 function renderFrentesList(box){
-  const ls=frList().filter(frFilt(S.frFiltroF));$('#frCount').textContent=ls.length;box._list=null;
+  const allFr=frList(),flt=S.frFiltroF||'todas',ls=flt==='todas'?allFr:allFr.filter(frFilt(flt));$('#frCount').textContent=ls.length;box._list=null;
   box.innerHTML=(canCreate()?'<button type="button" class="btn sm frnew" id="frNova">Nova frente</button>':'')+
     (ls.length?ls.map(x=>{const f=x.f;
       return '<button type="button" class="fr frc'+(x.st[0]==='Atrasada'?' late':'')+(x.st[1]==='st-concluida'?' done':'')+'" data-fid="'+esc(f.id)+'">'+
@@ -3856,6 +3913,7 @@ document.addEventListener('click',e=>{
 $('#btnFrentes').onclick=()=>{listarFrentes();requestAnimationFrame(closeMobileNav)};
 $('#btnCtl').onclick=()=>{listarControles();requestAnimationFrame(closeMobileNav)}; const _btnNovoCtl=$('#btnNovoCtl');if(_btnNovoCtl)_btnNovoCtl.onclick=()=>{abrirControle(null);requestAnimationFrame(closeMobileNav)};
 $('#btnCfg').onclick=()=>{if(S.view==='config')closeConfig();else openConfig();requestAnimationFrame(closeMobileNav)};
+[['#btnResumoDesktop','#btnResumo'],['#btnCfgDesktop','#btnCfg'],['#btnCtlDesktop','#btnCtl'],['#btnNovoCtlDesktop','#btnNovoCtl']].forEach(([p,c])=>{const pb=$(p),cb=$(c);if(pb&&cb)pb.onclick=()=>cb.click()});
 $('#btnLogout').onclick=()=>{if(window.froeseBackend)window.froeseBackend.signOut()};
 
 /* ---------- primeiro acesso ---------- */
