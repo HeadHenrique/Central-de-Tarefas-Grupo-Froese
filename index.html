@@ -1524,7 +1524,7 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
 
 </style>
 <style id="atlas-today-layer-fix">
-/* O destaque do dia atual fica atrás das atividades, nunca por cima delas. */
+/* Destaque do dia atual exclusivamente no fundo da coluna. */
 .daycol.today{
   position:relative;
   isolation:isolate;
@@ -1534,24 +1534,39 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
   content:"";
   position:absolute;
   inset:0;
-  z-index:0;
+  z-index:-1;
   pointer-events:none;
   background:color-mix(in srgb,var(--accent-soft) 45%,transparent);
 }
+
+/* Toda atividade fica integralmente acima do destaque do dia atual. */
 .daycol.today>.blk{
   position:absolute;
-  z-index:2!important;
+  z-index:3!important;
+  opacity:1!important;
+  filter:none!important;
 }
-/* Blocos concluídos continuam identificados pelo texto riscado,
-   mas o fundo do card permanece sólido acima do destaque azul. */
-.daycol.today>.blk.done{
+.daycol.today>.blk:not(.cc){
+  background:color-mix(in srgb,var(--pc) 13%,var(--surface))!important;
+}
+.daycol.today>.blk.cc{
+  background:color-mix(in srgb,var(--cc) 15%,var(--surface))!important;
+}
+
+/* Concluídas continuam riscadas, mas sem transparência no card nem no texto. */
+.daycol.today>.blk.done,
+.daycol.today>.blk.done .tx,
+.daycol.today>.blk.done .t,
+.daycol.today>.blk.done .m{
   opacity:1!important;
 }
-.daycol.today>.blk.done .tx{
-  opacity:.58;
+.daycol.today>.blk.done .t{
+  text-decoration:line-through;
 }
+
+/* A linha de horário atual continua visível por cima dos cards. */
 .daycol.today>.nowline{
-  z-index:4!important;
+  z-index:5!important;
 }
 </style>
 <div class="wrap" hidden>
