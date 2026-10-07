@@ -2217,9 +2217,9 @@ $('#qk').addEventListener('submit',e=>{e.preventDefault();const inp=$('#qkIn'),t
   createDemanda({grupoId:'geral',descricao:txt,tipo:S.cfg.tipos[0]||null,responsavel:me,prioridade:2,start:st,recorrencia:{freq:'none',dias:[],intervalo:1,ate:null},visivelPara:[],modeloId:null,colunas:null,tempo:S.cfg.tempoPadrao||30,
     checklist:[{id:rid(),descricao:txt,data:ymd(st),offset:null,hora:null,duracao:5,responsavel:me,feito:false,feitos:{},tipo:'execucao'}]});
   inp.value=''});
-$('#frFiltro').onchange=e=>{if(S.frModo==='f')S.frFiltroF=e.target.value;else S.frFiltro=e.target.value;render()};
+$('#frFiltro').onchange=e=>{if(S.frModo==='f'){S.frFiltroF=e.target.value;renderStats();renderFrentesList($('#frl'));return}S.frFiltro=e.target.value;render()};
 $('#cal').addEventListener('click',e=>{if(e.target.closest('[data-atr]'))abrirAtrasadas()});
-$('#frSeg').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;const next=b.dataset.v;if(next==='f'&&S.frModo!=='f')S.frFiltroF='todas';S.frModo=next;render()});
+$('#frSeg').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;const next=b.dataset.v;if(next==='f'&&S.frModo!=='f')S.frFiltroF='todas';S.frModo=next;if(next==='f'){renderStats();renderFrentesList($('#frl'));renderCal();return}render()});
 
 /* ---------- tarefas ---------- */
 function renderTarefas(){
@@ -2952,15 +2952,47 @@ function frInfo(f){
 function frList(){return Object.values(S.frentes||{}).filter(frPode).map(f=>Object.assign({f},frInfo(f)))
   .sort((a,b)=>(!!a.f.encerrada-!!b.f.encerrada)||((a.d===a.n&&a.n)-(b.d===b.n&&b.n))||(b.late-a.late)||((a.prox?+a.prox.prazo:9e15)-(b.prox?+b.prox.prazo:9e15)))}
 function renderFrentesList(box){
-  const allFr=frList(),flt=S.frFiltroF||'todas',ls=flt==='todas'?allFr:allFr.filter(frFilt(flt));$('#frCount').textContent=ls.length;box._list=null;
+  if(!box)return;
+  const base=Object.values(S.frentes||{}).filter(f=>{
+    if(S.me.admin||f.responsavel===S.me.pessoa||f.criadoPor===S.me.pessoa)return true;
+    return frDems(f.id).length>0;
+  });
+  const allFr=base.map(f=>{
+    try{return Object.assign({f},frInfo(f))}
+    catch(e){
+      const ds=frDems(f.id),n=ds.length;
+      return{f,es:[],n,d:0,late:0,par:0,prox:null,st:f.encerrada?['Encerrada','st-concluida']:!n?['Sem demandas','st-pendente']:['Em andamento','st-pendente'],pz:f.prazo?parseYmd(f.prazo):null,pzLate:false};
+    }
+  }).sort((a,b)=>(!!a.f.encerrada-!!b.f.encerrada)||String(a.f.nome||'').localeCompare(String(b.f.nome||'')));
+
+  const flt=S.frFiltroF||'todas';
+  const ls=flt==='todas'?allFr:allFr.filter(x=>{
+    if(flt==='pendentes')return !x.f.encerrada&&x.es.some(demFilt('pendentes'));
+    if(flt==='hoje')return !x.f.encerrada&&x.es.some(demFilt('hoje'));
+    if(flt==='atrasadas')return !x.f.encerrada&&x.es.some(demFilt('atrasadas'));
+    return true;
+  });
+
+  $('#frCount').textContent=ls.length;
+  box._list=null;
+
+  const cards=ls.map(x=>{
+    const f=x.f,pz=x.pz&&!isNaN(+x.pz)?x.pz:null;
+    let prox='';
+    if(x.prox&&x.prox.t&&x.prox.prazo){
+      try{prox='<span class="fr-ai">Próxima: '+esc(x.prox.t.descricao||'')+', '+relD(x.prox.prazo)+'</span>'}catch(e){}
+    }
+    return '<button type="button" class="fr frc'+(x.st[0]==='Atrasada'?' late':'')+(x.st[1]==='st-concluida'?' done':'')+'" data-fid="'+esc(f.id)+'">'+
+      '<span class="fr-top"><span class="fr-t">'+esc(f.nome||'Frente sem nome')+'</span><span class="pill '+esc(x.st[1]||'st-pendente')+'">'+esc(x.st[0]||'Em andamento')+'</span></span>'+
+      prox+
+      '<span class="fr-m"><span class="dot" style="background:'+esc(pColor(f.responsavel))+'"></span>'+esc(pName(f.responsavel))+
+      (pz?'<span'+(x.pzLate?' class="dev"':'')+'>prazo '+fmtD(pz)+'</span>':'')+
+      (x.late?'<span class="dev">'+x.late+' atrasada'+(x.late>1?'s':'')+'</span>':'')+'</span>'+
+      '<span class="fr-p"><span class="prog"><i style="width:'+(x.n?x.d/x.n*100:0)+'%"></i></span><span class="mono">'+x.d+' de '+x.n+' demandas</span></span></button>';
+  }).join('');
+
   box.innerHTML=(canCreate()?'<button type="button" class="btn sm frnew" id="frNova">Nova frente</button>':'')+
-    (ls.length?ls.map(x=>{const f=x.f;
-      return '<button type="button" class="fr frc'+(x.st[0]==='Atrasada'?' late':'')+(x.st[1]==='st-concluida'?' done':'')+'" data-fid="'+esc(f.id)+'">'+
-        '<span class="fr-top"><span class="fr-t">'+esc(f.nome)+'</span><span class="pill '+x.st[1]+'">'+x.st[0]+'</span></span>'+
-        (x.prox?'<span class="fr-ai">Próxima: '+esc(x.prox.t.descricao)+', '+relD(x.prox.prazo)+'</span>':'')+
-        '<span class="fr-m"><span class="dot" style="background:'+esc(pColor(f.responsavel))+'"></span>'+esc(pName(f.responsavel))+(x.pz?'<span'+(x.pzLate?' class="dev"':'')+'>prazo '+fmtD(x.pz)+'</span>':'')+(x.late?'<span class="dev">'+x.late+' atrasada'+(x.late>1?'s':'')+'</span>':'')+'</span>'+
-        '<span class="fr-p"><span class="prog"><i style="width:'+(x.n?x.d/x.n*100:0)+'%"></i></span><span class="mono">'+x.d+' de '+x.n+' demandas</span></span></button>'}).join('')
-      :Object.keys(S.frentes).length?'<div class="empty"><b>'+({pendentes:'Nenhuma frente com demanda para hoje ou atrasada',hoje:'Nenhuma frente com demanda vencendo hoje',atrasadas:'Nenhuma frente atrasada',todas:'Nenhuma frente'})[S.frFiltroF]+'</b></div>':'<div class="empty"><b>Nenhuma frente criada</b>Frente agrupa demandas de um mesmo objetivo. Ex.: Reforma da sala, com as demandas Carpete, Aparador e Frigobar.</div>');
+    (cards||'<div class="empty"><b>'+({pendentes:'Nenhuma frente com demanda para hoje ou atrasada',hoje:'Nenhuma frente com demanda vencendo hoje',atrasadas:'Nenhuma frente atrasada',todas:'Nenhuma frente'})[flt]+'</b></div>');
 }
 function openFrente(id){
   const f0=id?S.frentes[id]:null;if(id&&!f0){toast('Frente não encontrada.');return}
