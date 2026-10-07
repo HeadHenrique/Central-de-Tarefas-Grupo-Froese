@@ -1523,6 +1523,37 @@ button.stat:hover,.rz-b:hover{border-color:var(--accent)}
 }
 
 </style>
+<style id="atlas-today-layer-fix">
+/* O destaque do dia atual fica atrás das atividades, nunca por cima delas. */
+.daycol.today{
+  position:relative;
+  isolation:isolate;
+  background-color:transparent!important;
+}
+.daycol.today::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:color-mix(in srgb,var(--accent-soft) 45%,transparent);
+}
+.daycol.today>.blk{
+  position:absolute;
+  z-index:2!important;
+}
+/* Blocos concluídos continuam identificados pelo texto riscado,
+   mas o fundo do card permanece sólido acima do destaque azul. */
+.daycol.today>.blk.done{
+  opacity:1!important;
+}
+.daycol.today>.blk.done .tx{
+  opacity:.58;
+}
+.daycol.today>.nowline{
+  z-index:4!important;
+}
+</style>
 <div class="wrap" hidden>
   <header class="top atlas-header">
     <button class="mobile-menu-btn" id="btnMobileMenu" type="button" aria-label="Abrir menu" aria-expanded="false">
